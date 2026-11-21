@@ -1,0 +1,66 @@
+# -*- coding: utf-8 -*-
+"""全境封锁2每日目标掉落数据，自动更新，请勿手动修改。"""
+
+SOURCE_URL = 'https://agenthub.fans/assets/loot/target_loot.json'
+
+SNAPSHOT_DATE = '2026-11-21'
+
+TIMEZONE = 'Asia/Shanghai'
+
+TOTAL = 5
+
+CURRENT = [
+    {
+        "mission": "艺术博物馆",
+        "mission_en": "The Art Museum",
+        "loot": "核心力量",
+        "loot_en": "Core Strength",
+        "category": "装备组",
+        "mission_code": "ART",
+        "loot_code": "set_z",
+        "loot_uid": "E03CE5EA6997860C00037487CF2FDA8C",
+        "loot_mitem": "gearbrand_set_z.mgearbrand"
+    },
+    {
+        "mission": "国会大厦",
+        "mission_en": "Capitol Building",
+        "loot": "霰弹枪",
+        "loot_en": "Shotgun",
+        "category": "武器类型",
+        "mission_code": "CAP"
+    },
+    {
+        "mission": "杰佛逊广场",
+        "mission_en": "Jefferson Plaza",
+        "loot": "铸造厂堡垒",
+        "loot_en": "Foundry Bulwark",
+        "category": "装备组",
+        "mission_code": "JFP",
+        "loot_code": "set_h",
+        "loot_uid": "346395BC5DE1285F000E46715A29BF7D",
+        "loot_mitem": "gearbrand_set_h.mgearbrand"
+    },
+    {
+        "mission": "林肯纪念堂",
+        "mission_en": "Lincoln Memorial",
+        "loot": "精密组件",
+        "loot_en": "Measured Assembly",
+        "category": "装备组",
+        "mission_code": "LIN",
+        "loot_code": "set_w",
+        "loot_uid": "E03CE5EA67F42E1B0003BC8916E53225",
+        "loot_mitem": "gearbrand_set_w.mgearbrand"
+    },
+    {
+        "mission": "联邦急难地下碉堡",
+        "mission_en": "Federal Emergency Bunker",
+        "loot": "阿尔卑斯山峰军事",
+        "loot_en": "Alps Summit Armament",
+        "category": "品牌套装",
+        "mission_code": "FEB",
+        "loot_code": "k",
+        "loot_uid": "5D4179F159C39A8C000038236D0F7E9C",
+        "loot_mitem": "gearbrand_k.mgearbrand",
+        "loot_alias": "Alps Summit Armaments"
+    }
+]
