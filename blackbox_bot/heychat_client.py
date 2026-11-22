@@ -139,22 +139,49 @@ class HeychatBot:
         channel_info = event.get("channel_base_info") or {}
         room_id = str(room_info.get("room_id", ""))
         try:
+            # 先保存订阅，确保后续每日定时推送使用当前房间。
             await asyncio.to_thread(self.save_subscription, room_id, channel_info)
-            confirmation = (
-                "已成功订阅全境封锁2每日掉落！\n"
-                "之后每天北京时间 16:10 自动推送最新掉落表格。"
-            )
-            await asyncio.to_thread(self.send_message, room_id, channel_info, confirmation)
-            logger.info("订阅已登记，room_id=%s channel_id=%s", room_id, channel_info.get("channel_id"))
         except Exception:
-            logger.exception("保存订阅或发送确认消息失败")
+            logger.exception("保存订阅失败")
             try:
                 await asyncio.to_thread(
-                    self.send_message, room_id, channel_info,
-                    "订阅设置失败，请检查机器人权限和 GitHub Actions 日志。",
+                    self.send_message,
+                    room_id,
+                    channel_info,
+                    "订阅设置失败，无法保存房间信息。请检查机器人权限和 GitHub Actions 日志。",
                 )
             except Exception:
                 logger.exception("发送订阅失败提示也失败")
+            return
+
+        confirmation = (
+            "已成功订阅全境封锁2每日掉落！\n"
+            "以下是当前仓库保存的每日掉落：\n\n"
+        )
+        try:
+            # 收到订阅命令时，立即把当前掉落表格一并回复。
+            loot_table = await asyncio.to_thread(build_markdown)
+            reply = confirmation + loot_table + (
+                "\n\n之后每天北京时间 16:10 自动推送最新掉落。"
+            )
+        except Exception:
+            logger.exception("订阅已保存，但读取每日掉落列表失败")
+            reply = (
+                "已成功订阅全境封锁2每日掉落！\n"
+                "但暂时无法读取当前掉落列表，请检查仓库中的 "
+                "全境封锁2恶化掉落/每日掉落.json。\n"
+                "之后每天北京时间 16:10 自动推送最新掉落。"
+            )
+
+        try:
+            await asyncio.to_thread(self.send_message, room_id, channel_info, reply)
+            logger.info(
+                "订阅确认及当前掉落列表已发送，room_id=%s channel_id=%s",
+                room_id,
+                channel_info.get("channel_id"),
+            )
+        except Exception:
+            logger.exception("订阅已保存，但发送订阅回复失败")
 
     async def heartbeat(self) -> None:
         while not self.stopping:
