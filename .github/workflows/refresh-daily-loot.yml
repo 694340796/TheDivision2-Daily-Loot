@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   legacy:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "此旧工作流已停用自动计划。请使用 Daily Loot Fetch 更新 data/daily_loot.json。"
+          echo "此旧工作流已停用。请使用 Daily Loot Fetch 更新 全境封锁2恶化掉落/每日掉落.json。"
