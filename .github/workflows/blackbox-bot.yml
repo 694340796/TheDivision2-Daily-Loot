@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 350
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -39,7 +39,7 @@ jobs:
             exit 1
           fi
 
-      - name: Listen for one-time subscription command
+      - name: Listen for subscription command
         run: python -u -m blackbox_bot.main
         env:
           HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
