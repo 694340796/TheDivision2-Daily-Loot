@@ -1,47 +1,48 @@
-# 全境封锁2每日掉落 - GitHub Actions 黑盒机器人
+# 全境封锁2每日掉落 - GitHub Actions 自动推送
 
-本项目采用 GitHub-hosted Actions Runner 运行机器人，不需要 VPS、云服务器或本地电脑。
+所有任务均由 GitHub Actions 托管 Runner 执行，不需要 VPS、服务器或本地电脑。
 
-## 功能
+## 自动流程
 
-- 监听黑盒机器人命令 ID：`2124398728264114176`
-- 读取仓库的 `history/全境封锁2每日掉落.py`
-- 只回复三列中文 Markdown 表格：副本名称、掉落装备名称、装备类型
-- WebSocket 断线自动重连
-- GitHub Actions 每 5 分钟调度一次；每次任务最长运行 350 分钟，随后由下一次排队的计划任务接续
+1. 每天北京时间 16:00：`.github/workflows/daily-loot-fetch.yml` 从 AgentHub 下载 JSON，覆盖仓库固定文件 `data/daily_loot.json`。
+2. 首次订阅：在黑盒目标房间发送一次已配置的机器人命令（命令 ID：`2124398728264114176`）。机器人把房间 ID 和频道 ID 保存到 `data/blackbox_subscription.json`。
+3. 每天北京时间 16:10：`.github/workflows/daily-loot-push.yml` 从 `data/daily_loot.json` 读取最新掉落，生成三列中文 Markdown 表格并发送到订阅频道。
 
-## 必须配置的 Secret
+数据文件每天覆盖，不会按日期生成一堆文件。
 
-先在黑盒机器人后台重置此前暴露过的旧令牌。然后进入：
+## GitHub Secrets
 
-GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret
+进入仓库 Settings → Secrets and variables → Actions，新增：
 
-新增：
+- `HEYCHAT_BOT_TOKEN`：黑盒机器人 Token。
 
-- Name：`HEYCHAT_BOT_TOKEN`
-- Secret：粘贴重置后的黑盒机器人 Token
+此前曾在聊天中暴露过的旧 Token 必须先在黑盒后台重置，再把新 Token 放入 Secret。不要将 Token 写入代码或提交记录。
 
-不要把 Token 写入任何代码、提交记录或普通变量。
+## 首次启用步骤
 
-## 启动方式
+1. 配置 `HEYCHAT_BOT_TOKEN`。
+2. 进入 Actions，手动运行 **Daily Loot Fetch**，确认 `data/daily_loot.json` 已生成并提交。
+3. 手动运行 **Blackbox Bot**，启动 WebSocket 监听。
+4. 在目标黑盒房间发送一次命令，等待机器人回复“已成功订阅”。订阅信息会保存为 `data/blackbox_subscription.json`。
+5. 之后每天 16:00 自动更新数据、16:10 自动推送，不需要再次发送命令。
 
-工作流文件：
+## 工作流
 
-`.github/workflows/blackbox-bot.yml`
+- `.github/workflows/daily-loot-fetch.yml`：每日 16:00 抓取并覆盖数据文件。
+- `.github/workflows/daily-loot-push.yml`：每日 16:10 自动推送。
+- `.github/workflows/blackbox-bot.yml`：监听首次订阅命令，订阅数据写入仓库。
 
-配置 Secret 后，进入 GitHub 仓库 → Actions → Blackbox Bot → Run workflow，手动启动一次。之后工作流会按 `*/5 * * * *` 计划自动启动。
+## 推送表格格式
 
-## 重要说明
+| 副本名称 | 掉落装备名称 | 装备类型 |
+|---|---|---|
+| 读取 JSON 中的 mission | 读取 JSON 中的 loot | 读取 JSON 中的 category |
 
-1. GitHub Actions 的 schedule 最短计划间隔为 5 分钟，不是 1 分钟；GitHub 可能延迟调度，因此不能保证命令在 1～2 分钟内必定响应。
-2. 机器人使用 WebSocket 长连接监听命令。每个 GitHub-hosted job 最长运行 6 小时，本工作流设置为 350 分钟并由后续计划任务接续。任务切换期间可能短暂离线。
-3. GitHub Actions 并非 7×24 小时常驻服务。若必须保证实时响应，需要常驻运行环境；这与“完全只使用 GitHub Actions”不同。
-4. 机器人必须已加入目标黑盒房间，并拥有查看频道和发送消息权限。
-5. 当前 WebSocket 事件和消息发送实现尚未使用实际 Token 完成端到端验证。第一次运行后，请查看 Actions 日志并在黑盒房间实际触发命令确认。
-6. 每日掉落数据更新由独立的更新工作流负责；机器人从仓库最新数据文件读取内容。
+## 运行限制和注意事项
 
-## 数据文件
+- GitHub Actions 的定时任务可能排队延迟，16:00 和 16:10 是计划触发时间，不是精确准点保证。
+- 机器人监听任务按 350 分钟运行并由后续计划任务接续，切换时可能短暂离线；首次订阅命令需要监听任务处于运行状态。
+- 订阅保存需要机器人工作流的 `GITHUB_TOKEN` 具有 `contents: write` 权限。工作流已声明该权限。
+- AgentHub JSON 必须包含非空 `current` 数组，且每条记录包含中文 `mission`、`loot` 字段。若源格式发生变化，抓取任务会失败并保留旧数据，不能确认源端实际结构前不应猜测字段。
+- 当前尚未用真实黑盒 Token 完成端到端测试。部署后需查看 Actions 日志并实际验证一次订阅和推送。
 
-`history/全境封锁2每日掉落.py`
-
-机器人使用 AST 读取文件中的字面量数据，不会执行这个 Python 文件。
