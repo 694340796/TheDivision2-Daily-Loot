@@ -1,0 +1,1 @@
+-r blackbox_bot/requirements.txt
