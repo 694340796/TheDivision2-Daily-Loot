@@ -1,48 +1,14 @@
-name: Refresh The Division 2 Daily Loot
+name: Legacy Daily Loot Updater (Manual Only)
 
 on:
-  schedule:
-    # 08:07 / 08:37 UTC = 16:07 / 16:37 Asia/Shanghai
-    - cron: "7,37 8 * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
-concurrency:
-  group: division2-daily-loot-refresh
-  cancel-in-progress: false
-
 jobs:
-  refresh:
+  legacy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - name: Checkout default branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Fetch and validate today's loot
-        run: python update_loot.py
-        env:
-          TZ: Asia/Shanghai
-          LOOT_RETRIES: "6"
-          LOOT_RETRY_SECONDS: "90"
-
-      - name: Commit updated data only when changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- history/全境封锁2每日掉落.py; then
-            echo "No data changes."
-            exit 0
-          fi
-          git add history/全境封锁2每日掉落.py
-          git commit -m "chore: refresh daily Division 2 loot"
-          git push
+      - run: |
+          echo "此旧工作流已停用自动计划。请使用 Daily Loot Fetch 更新 data/daily_loot.json。"
