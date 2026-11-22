@@ -19,14 +19,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Fetch latest loot JSON and overwrite fixed file
+      - name: Fetch latest loot JSON
         run: python scripts/fetch_daily_loot.py
         env:
           LOOT_RETRIES: "5"
@@ -37,10 +37,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/daily_loot.json
+          git add "全境封锁2恶化掉落/每日掉落.json"
           if git diff --cached --quiet; then
             echo "Daily loot data unchanged."
             exit 0
           fi
-          git commit -m "chore: update daily loot data"
+          git commit -m "chore: update daily loot snapshot"
           git push
