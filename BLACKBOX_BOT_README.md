@@ -1,132 +1,47 @@
-# 全境封锁2每日掉落 - 黑盒语音机器人
+# 全境封锁2每日掉落 - GitHub Actions 黑盒机器人
+
+本项目采用 GitHub-hosted Actions Runner 运行机器人，不需要 VPS、云服务器或本地电脑。
 
 ## 功能
 
-- 收到黑盒命令 ID `2124398728264114176` 时，读取 GitHub 仓库最新的 `history/全境封锁2每日掉落.py`。
-- 仅输出三列中文 Markdown 表格：副本名称、掉落装备名称、装备类型。
-- 不执行仓库 Python 文件，而是用 AST 安全读取 `CURRENT` 字面量。
-- WebSocket 断线自动重连，心跳维持连接。
-- 每日掉落更新由 GitHub Actions 单独执行。
+- 监听黑盒机器人命令 ID：`2124398728264114176`
+- 读取仓库的 `history/全境封锁2每日掉落.py`
+- 只回复三列中文 Markdown 表格：副本名称、掉落装备名称、装备类型
+- WebSocket 断线自动重连
+- GitHub Actions 每 5 分钟调度一次；每次任务最长运行 350 分钟，随后由下一次排队的计划任务接续
 
-## 1. 先处理令牌
+## 必须配置的 Secret
 
-此前令牌已被发送到聊天中，请先在黑盒机器人管理后台重置令牌。只把新令牌配置为运行主机环境变量 `HEYCHAT_BOT_TOKEN`，不要写入源码、`.env.example` 或 GitHub 仓库。
+先在黑盒机器人后台重置此前暴露过的旧令牌。然后进入：
 
-## 2. 安装机器人
+GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret
 
-建议使用长期运行的 Linux VPS / Windows 主机。GitHub Actions 不是常驻服务，不适合承担 WebSocket 在线监听。
+新增：
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r blackbox_bot/requirements.txt
-```
+- Name：`HEYCHAT_BOT_TOKEN`
+- Secret：粘贴重置后的黑盒机器人 Token
 
-在项目根目录设置环境变量：
+不要把 Token 写入任何代码、提交记录或普通变量。
 
-```bash
-export HEYCHAT_BOT_TOKEN='你的重置后令牌'
-export HEYCHAT_COMMAND_ID='2124398728264114176'
-```
+## 启动方式
 
-启动：
+工作流文件：
 
-```bash
-python -m blackbox_bot.main
-```
+`.github/workflows/blackbox-bot.yml`
 
-Windows PowerShell：
+配置 Secret 后，进入 GitHub 仓库 → Actions → Blackbox Bot → Run workflow，手动启动一次。之后工作流会按 `*/5 * * * *` 计划自动启动。
 
-```powershell
-$env:HEYCHAT_BOT_TOKEN="你的重置后令牌"
-$env:HEYCHAT_COMMAND_ID="2124398728264114176"
-python -m blackbox_bot.main
-```
+## 重要说明
 
-确保机器人已被邀请到目标房间，并具有查看频道、发送消息权限。命令 ID 必须与黑盒机器人管理后台中配置的命令 ID 完全一致。
+1. GitHub Actions 的 schedule 最短计划间隔为 5 分钟，不是 1 分钟；GitHub 可能延迟调度，因此不能保证命令在 1～2 分钟内必定响应。
+2. 机器人使用 WebSocket 长连接监听命令。每个 GitHub-hosted job 最长运行 6 小时，本工作流设置为 350 分钟并由后续计划任务接续。任务切换期间可能短暂离线。
+3. GitHub Actions 并非 7×24 小时常驻服务。若必须保证实时响应，需要常驻运行环境；这与“完全只使用 GitHub Actions”不同。
+4. 机器人必须已加入目标黑盒房间，并拥有查看频道和发送消息权限。
+5. 当前 WebSocket 事件和消息发送实现尚未使用实际 Token 完成端到端验证。第一次运行后，请查看 Actions 日志并在黑盒房间实际触发命令确认。
+6. 每日掉落数据更新由独立的更新工作流负责；机器人从仓库最新数据文件读取内容。
 
-## 3. Linux systemd 常驻运行示例
+## 数据文件
 
-将项目放在 `/opt/TheDivision2-BlackboxBot`，创建 `/etc/systemd/system/division2-blackbox-bot.service`：
+`history/全境封锁2每日掉落.py`
 
-```ini
-[Unit]
-Description=The Division 2 Heychat Bot
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/TheDivision2-BlackboxBot
-Environment=HEYCHAT_BOT_TOKEN=替换为重置后的令牌
-Environment=HEYCHAT_COMMAND_ID=2124398728264114176
-Environment=LOOT_REPOSITORY=694340796/TheDivision2-Daily-Loot
-Environment=LOOT_BRANCH=main
-Environment=LOOT_DATA_PATH=history/全境封锁2每日掉落.py
-ExecStart=/opt/TheDivision2-BlackboxBot/.venv/bin/python -m blackbox_bot.main
-Restart=always
-RestartSec=5
-User=root
-
-[Install]
-WantedBy=multi-user.target
-```
-
-启用服务：
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now division2-blackbox-bot
-sudo systemctl status division2-blackbox-bot
-journalctl -u division2-blackbox-bot -f
-```
-
-生产环境建议使用专用低权限用户，并用 systemd `EnvironmentFile` 或主机密钥管理功能保存令牌，不要把真实令牌写进服务文件。
-
-## 4. 每日掉落自动更新
-
-新增的 `.github/workflows/refresh-daily-loot.yml` 会在北京时间：
-
-- 16:07 检查一次；
-- 16:37 再检查一次；
-- 每次最多重试 6 次，每次间隔 90 秒；
-- 只有数据源日期等于北京时间当天，才会覆盖仓库数据；
-- 数据没变化就不产生提交；
-- 数据源未更新时任务会失败并保留旧数据，不会把昨天的数据冒充今天数据。
-
-GitHub Actions 的 schedule 使用 UTC：`7,37 8 * * *`。GitHub 定时任务可能有排队延迟，不能保证精确到分钟；双时段检查和重试用于降低漏更新概率。
-
-请在仓库 Settings → Actions → General → Workflow permissions 中允许工作流写入仓库内容（Read and write permissions）。
-
-## 5. 部署注意事项
-
-1. 将本项目文件合并到 `694340796/TheDivision2-Daily-Loot`，保留原有 `history/全境封锁2每日掉落.py`。
-2. 确保新 workflow 位于默认分支的 `.github/workflows/` 目录。
-3. 检查仓库中是否有旧的每日掉落定时 workflow；确认新 workflow 成功后，再停用旧的重复任务，避免两套更新程序同时写同一个文件。
-4. 在 Actions 页面手动运行 `Refresh The Division 2 Daily Loot`，检查日志与提交结果。
-5. 在黑盒房间触发对应命令，预期回复格式如下：
-
-| 副本名称 | 掉落装备名称 | 装备类型 |
-|---|---|---|
-| 艺术博物馆 | 核心力量 | 装备组 |
-| 国会大厦 | 霰弹枪 | 武器类型 |
-
-示例仅用于展示格式，实际内容以仓库当天数据为准。
-
-## 6. 目录
-
-```text
-.
-├── .github/workflows/refresh-daily-loot.yml
-├── blackbox_bot/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── heychat_client.py
-│   ├── loot_reader.py
-│   └── requirements.txt
-├── history/
-│   └── 全境封锁2每日掉落.py  # 使用原仓库文件，不要用示例覆盖
-├── update_loot.py
-├── .env.example
-└── BLACKBOX_BOT_README.md
-```
+机器人使用 AST 读取文件中的字面量数据，不会执行这个 Python 文件。
