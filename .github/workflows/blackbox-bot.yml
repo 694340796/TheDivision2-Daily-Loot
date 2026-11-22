@@ -1,23 +1,20 @@
 name: Blackbox Bot
 
 on:
-  # GitHub Actions schedule 最短间隔：5 分钟
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
-# 保证同一时间只运行一个机器人实例；后续定时任务排队接续。
 concurrency:
   group: blackbox-bot
   cancel-in-progress: false
 
 jobs:
-  bot:
+  listen:
     runs-on: ubuntu-latest
-    # GitHub-hosted runner 单个 job 最长 6 小时，这里预留 10 分钟退出余量。
     timeout-minutes: 350
     steps:
       - name: Checkout
@@ -38,16 +35,16 @@ jobs:
           HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
         run: |
           if [ -z "$HEYCHAT_BOT_TOKEN" ]; then
-            echo "::error::请在 Settings > Secrets and variables > Actions 中添加 HEYCHAT_BOT_TOKEN"
+            echo "::error::请在仓库 Secrets 中设置 HEYCHAT_BOT_TOKEN"
             exit 1
           fi
 
-      - name: Start Blackbox bot
+      - name: Listen for one-time subscription command
         run: python -u -m blackbox_bot.main
         env:
           HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEYCHAT_COMMAND_ID: "2124398728264114176"
           LOOT_REPOSITORY: "694340796/TheDivision2-Daily-Loot"
           LOOT_BRANCH: "main"
-          LOOT_DATA_PATH: "history/全境封锁2每日掉落.py"
           PYTHONUNBUFFERED: "1"
