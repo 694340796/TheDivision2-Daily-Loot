@@ -1,47 +1,63 @@
 # -*- coding: utf-8 -*-
-"""从仓库固定 JSON 文件读取每日掉落，并生成中文 Markdown 表格。"""
+"""Read the fixed daily loot snapshot and render the bot's Markdown table."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-DATA_PATH = Path("data/daily_loot.json")
+DATA_PATH = Path("全境封锁2恶化掉落/每日掉落.json")
 
 
 def locate_records(payload: dict) -> list:
     candidates = [payload]
-    if isinstance(payload.get("data"), dict):
-        candidates.append(payload["data"])
+    for key in ("data", "result"):
+        nested = payload.get(key)
+        if isinstance(nested, dict):
+            candidates.append(nested)
     for item in candidates:
-        rows = item.get("current")
-        if isinstance(rows, list) and rows:
-            return rows
-    raise ValueError("data/daily_loot.json 中没有非空 current 数组")
+        for key in ("current", "missions", "items"):
+            rows = item.get(key)
+            if isinstance(rows, list) and rows:
+                return rows
+    raise ValueError(f"{DATA_PATH} 中没有非空掉落记录数组")
+
+
+def pick(record: dict, *keys: str, default: str = "未知") -> str:
+    for key in keys:
+        value = record.get(key)
+        if value not in (None, "", [], {}):
+            if isinstance(value, list):
+                return "、".join(str(x) for x in value)
+            if isinstance(value, dict):
+                return str(value.get("name") or value.get("zh") or value)
+            return str(value)
+    return default
 
 
 def markdown_escape(value: object) -> str:
-    text = str(value or "未知").strip()
-    return text.replace("|", r"\|").replace("\r", " ").replace("\n", " ")
+    return str(value).strip().replace("|", r"\|").replace("\r", " ").replace("\n", " ")
 
 
 def build_markdown() -> str:
-    if not DATA_PATH.exists():
+    if not DATA_PATH.is_file():
         raise FileNotFoundError(f"每日掉落文件不存在：{DATA_PATH}")
     payload = json.loads(DATA_PATH.read_text(encoding="utf-8-sig"))
+    if not isinstance(payload, dict):
+        raise ValueError("每日掉落 JSON 根节点格式错误")
     rows = locate_records(payload)
     lines = [
         "| 副本名称 | 掉落装备名称 | 装备类型 |",
         "|---|---|---|",
     ]
-    for item in rows:
-        if not isinstance(item, dict):
+    for row in rows:
+        if not isinstance(row, dict):
             continue
-        mission = item.get("mission") or "未知副本"
-        loot = item.get("loot") or "未知掉落"
-        category = item.get("category") or item.get("loot_type") or item.get("type") or "未分类"
+        mission = pick(row, "mission", "mission_name", "name", "副本", "副本名称", default="未知副本")
+        loot = pick(row, "loot", "target_loot", "targetLoot", "item", "装备", "掉落装备", default="未知掉落")
+        category = pick(row, "category", "loot_type", "type", "item_type", "装备类型", default="未分类")
         lines.append(
             f"| {markdown_escape(mission)} | {markdown_escape(loot)} | {markdown_escape(category)} |"
         )
     if len(lines) == 2:
-        raise ValueError("每日掉落 JSON 中没有可展示的记录")
+        raise ValueError("每日掉落 JSON 中没有可展示的有效记录")
     return "\n".join(lines)
