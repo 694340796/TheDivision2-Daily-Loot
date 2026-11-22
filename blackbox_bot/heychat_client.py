@@ -142,7 +142,7 @@ class HeychatBot:
             await asyncio.to_thread(self.save_subscription, room_id, channel_info)
             confirmation = (
                 "已成功订阅全境封锁2每日掉落！\n"
-                "从明天起，每天北京时间 16:10 自动推送最新掉落表格。"
+                "之后每天北京时间 16:10 自动推送最新掉落表格。"
             )
             await asyncio.to_thread(self.send_message, room_id, channel_info, confirmation)
             logger.info("订阅已登记，room_id=%s channel_id=%s", room_id, channel_info.get("channel_id"))
