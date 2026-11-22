@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
 DATA_PATH = Path("data/daily_loot.json")
 
 
@@ -23,7 +21,7 @@ def locate_records(payload: dict) -> list:
 
 def markdown_escape(value: object) -> str:
     text = str(value or "未知").strip()
-    return text.replace("|", r"\\|").replace("\\r", " ").replace("\\n", " ")
+    return text.replace("|", r"\|").replace("\r", " ").replace("\n", " ")
 
 
 def build_markdown() -> str:
@@ -46,4 +44,4 @@ def build_markdown() -> str:
         )
     if len(lines) == 2:
         raise ValueError("每日掉落 JSON 中没有可展示的记录")
-    return "\\n".join(lines)
+    return "\n".join(lines)
