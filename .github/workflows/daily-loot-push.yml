@@ -1,0 +1,36 @@
+name: Daily Loot Push
+
+on:
+  # 08:10 UTC = 北京时间 16:10
+  schedule:
+    - cron: "10 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-loot-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout latest repository data
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install bot dependency
+        run: python -m pip install --disable-pip-version-check -r blackbox_bot/requirements.txt
+
+      - name: Send daily loot to subscribed channel
+        run: python scripts/send_daily_loot.py
+        env:
+          HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
+          PYTHONUNBUFFERED: "1"
