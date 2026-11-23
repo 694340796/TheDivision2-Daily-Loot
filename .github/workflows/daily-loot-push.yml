@@ -1,9 +1,9 @@
 name: Daily Loot Push
 
 on:
-  # 08:10 UTC = 北京时间 16:10
+  # 08:02 UTC = 北京时间 16:02
   schedule:
-    - cron: "10 8 * * *"
+    - cron: "2 8 * * *"
   workflow_dispatch:
 
 permissions:
