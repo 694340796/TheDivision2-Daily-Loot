@@ -1,9 +1,9 @@
 name: Daily Loot Fetch
 
 on:
-  # 08:00 UTC = 北京时间 16:00
+  # 08:01 UTC = 北京时间 16:01
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "1 8 * * *"
   workflow_dispatch:
 
 permissions:
