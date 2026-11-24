@@ -28,9 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout latest repository data
-        uses: actions/checkout@v7
-
       - name: Wait for today's fetch workflow
         if: ${{ inputs.wait_for_fetch == true }}
         env:
@@ -71,6 +68,10 @@ jobs:
 
           echo "::error::Timed out waiting for Daily Loot Fetch after 15 minutes."
           exit 1
+
+      # 必须在 Fetch 完成后 checkout，确保读取的是最新掉落文件
+      - name: Checkout latest repository data
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v7
