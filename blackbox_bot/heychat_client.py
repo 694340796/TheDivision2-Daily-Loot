@@ -74,17 +74,32 @@ class HeychatBot:
             logger.info("黑盒消息接口已接受请求，HTTP %s", response.status)
 
     def send_card(self, room_id: str, channel_info: dict, card_message: str) -> None:
-        """发送黑盒原生卡片（msg_type=20）。"""
+        """发送黑盒卡片消息；支持附带统一尺寸的图片元数据。"""
         channel_id = str(channel_info.get("channel_id", ""))
         if not room_id or not channel_id:
             raise ValueError("命令事件缺少 room_id 或 channel_id")
+
+        # 新版 loot_reader 返回 msg/addition 封装；兼容旧版原生卡片 JSON。
+        message_text = card_message
+        addition = "{}"
+        try:
+            envelope = json.loads(card_message)
+            if isinstance(envelope, dict) and isinstance(envelope.get("msg"), str):
+                message_text = envelope["msg"]
+                raw_addition = envelope.get("addition", "{}")
+                addition = raw_addition if isinstance(raw_addition, str) else json.dumps(
+                    raw_addition, ensure_ascii=False, separators=(",", ":")
+                )
+        except json.JSONDecodeError:
+            pass
+
         payload = {
-            "msg": card_message,
-            "msg_type": 20,
+            "msg": message_text,
+            "msg_type": 4 if message_text != card_message else 20,
             "heychat_ack_id": "",
             "reply_id": "",
             "room_id": str(room_id),
-            "addition": "{}",
+            "addition": addition,
             "at_user_id": "",
             "at_role_id": "",
             "mention_channel_id": "",
