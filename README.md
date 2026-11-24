@@ -77,3 +77,13 @@ npm run deploy
 - Cloudflare 的 `GITHUB_TOKEN` 必须保存为 Secret。
 - 不要提交或公开任何机器人 Token。
 - 如果 Token 泄露，立即在对应平台撤销并重新创建。
+
+
+## 官方服务器维护公告（无 X API Token 模式）
+
+- `scripts/fetch_server_maintenance.py` 随每日掉落获取工作流运行，尝试从公开 X/Nitter RSS 镜像读取官方账号 `@TheDivisionGame` 的维护公告。
+- 不需要新增 GitHub Secret。若有可用 RSS 地址，可通过 Actions 环境变量 `X_PROFILE_FEED_URL` 覆盖默认 Feed。
+- 公告数据保存到 `data/server_maintenance.json`，并随每日 Fetch 工作流提交。
+- 黑盒原生卡片展示发帖日期、北京时间维护开始时间、官方预计维护时长；仅在开始时间和时长都解析成功时添加 `mode: default` 倒计时，结束时间为维护开始时间 + 官方预计维护时长。
+- 未公布或无法解析的字段显示“官方未公布”，不猜测；抓取失败时保留旧公告且不阻断每日掉落任务。
+- **稳定性说明：** 这是无令牌的公开镜像方案，不是 X 官方 API。公开 Nitter/RSS 镜像可能限流、变更或停止服务，因此不能保证每次都能取到最新动态。X API 或可靠的第三方数据 API 才能提供更稳定的自动化读取。
