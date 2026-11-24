@@ -31,11 +31,17 @@ jobs:
           LOOT_RETRY_SECONDS: "60"
           TZ: Asia/Shanghai
 
-      - name: Commit fixed daily data file
+      - name: Fetch latest official X server maintenance notice
+        run: python scripts/fetch_server_maintenance.py
+        continue-on-error: true
+        env:
+          TZ: Asia/Shanghai
+
+      - name: Commit fixed daily data files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "全境封锁2恶化掉落/每日掉落.json"
+          git add "全境封锁2恶化掉落/每日掉落.json" data/server_maintenance.json
           if git diff --cached --quiet; then
             echo "Daily loot data unchanged."
             exit 0
