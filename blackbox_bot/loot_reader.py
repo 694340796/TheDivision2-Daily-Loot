@@ -162,6 +162,8 @@ def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: 
         else:
             modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
 
+    modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
+
     # 原型贮藏箱：只展示 vendor 数组中日期等于当前快照日期的记录。
     snapshot_date = str(payload.get("snapshot_date") or "")
     vendor_rows = payload.get("vendor") if isinstance(payload.get("vendor"), list) else []
@@ -214,8 +216,60 @@ def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: 
     }
 
 
+
+def build_vendor_card(payload: dict, icons: dict) -> dict:
+    """独立原型贮藏箱卡片，只显示快照日期当天的 vendor 数据。"""
+    snapshot_date = str(payload.get("snapshot_date") or "")
+    vendor_rows = payload.get("vendor") if isinstance(payload.get("vendor"), list) else []
+    today_vendor = []
+
+    for vendor_row in vendor_rows:
+        if isinstance(vendor_row, (list, tuple)) and len(vendor_row) >= 3:
+            vendor_date, crate_name, item_name = vendor_row[0], vendor_row[1], vendor_row[2]
+        elif isinstance(vendor_row, dict):
+            vendor_date = vendor_row.get("date") or vendor_row.get("day")
+            crate_name = vendor_row.get("type") or vendor_row.get("vendor") or vendor_row.get("name")
+            item_name = vendor_row.get("item") or vendor_row.get("loot") or vendor_row.get("category")
+        else:
+            continue
+        if str(vendor_date) == snapshot_date and crate_name and item_name:
+            today_vendor.append((clean_text(crate_name), clean_text(item_name)))
+
+    modules = [
+        {"type": "header", "content": {"type": "plain-text", "text": "🧰 SHD  |  原型贮藏箱"}},
+        {"type": "section", "paragraph": [{"type": "markdown", "text": f"📅 **情报日期：** {clean_text(snapshot_date or '日期未知')}"}]},
+    ]
+
+    if today_vendor:
+        for crate_name, item_name in today_vendor:
+            detail = f"📦 **{crate_name}：** {item_name}"
+            image_url = resolve_icon_url(icons, item_name)
+            if image_url:
+                modules.append({
+                    "type": "section",
+                    "paragraph": [
+                        {"type": "markdown", "text": detail},
+                        {"type": "image", "url": image_url, "size": "small"},
+                    ],
+                })
+            else:
+                modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
+    else:
+        modules.append({
+            "type": "section",
+            "paragraph": [{"type": "markdown", "text": "今日暂无原型贮藏箱数据。"}],
+        })
+
+    return {
+        "type": "card",
+        "border_color": "#F36B21",
+        "size": "medium",
+        "modules": modules,
+    }
+
+
 def build_card_json(subscription: bool = False) -> str:
-    """生成黑盒 msg_type 20 原生卡片；维护和掉落拆成独立卡片分栏展示。"""
+    """生成黑盒 msg_type 20 原生卡片；服务器维护、每日掉落和原型贮藏箱拆成三个独立卡片分栏展示。"""
     if not DATA_PATH.is_file():
         raise FileNotFoundError(f"每日掉落文件不存在：{DATA_PATH}")
     payload = json.loads(DATA_PATH.read_text(encoding="utf-8-sig"))
@@ -228,7 +282,8 @@ def build_card_json(subscription: bool = False) -> str:
     maintenance = load_maintenance()
     maintenance_card = build_maintenance_card(maintenance, now_ts)
     loot_card = build_loot_card(payload, rows, icons, subscription)
-    card = {"data": [maintenance_card, loot_card]}
+    vendor_card = build_vendor_card(payload, icons)
+    card = {"data": [maintenance_card, loot_card, vendor_card]}
     return json.dumps(card, ensure_ascii=False, separators=(",", ":"))
 
 
