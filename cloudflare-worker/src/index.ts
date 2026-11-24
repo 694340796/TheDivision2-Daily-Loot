@@ -1,3 +1,8 @@
+interface ScheduledController {
+  cron: string;
+  scheduledTime: number;
+}
+
 export interface Env {
   GITHUB_TOKEN: string;
   GITHUB_OWNER?: string;
@@ -53,7 +58,7 @@ export default {
   async scheduled(
     controller: ScheduledController,
     env: Env,
-    _ctx: ExecutionContext,
+    _ctx: unknown,
   ): Promise<void> {
     if (!env.GITHUB_TOKEN) {
       throw new Error("Missing Cloudflare Worker secret: GITHUB_TOKEN");
