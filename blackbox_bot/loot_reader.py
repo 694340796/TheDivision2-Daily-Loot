@@ -87,6 +87,45 @@ def build_card_json(subscription: bool = False) -> str:
         },
     ]
 
+    # 官方 X 服务器维护公告（无 API Token 时通过公开 RSS 镜像获取）。
+    maintenance_path = PROJECT_ROOT / "data" / "server_maintenance.json"
+    if maintenance_path.is_file():
+        try:
+            maintenance = json.loads(maintenance_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            maintenance = {}
+        if isinstance(maintenance, dict) and maintenance.get("post_url"):
+            post_date = clean_text(maintenance.get("post_date_beijing") or "未知")
+            start_time = clean_text(maintenance.get("maintenance_start_beijing") or "官方未公布")
+            duration = clean_text(maintenance.get("duration_text") or "官方未公布")
+            announcement = clean_text(maintenance.get("announcement") or "")
+            maintenance_lines = [
+                "**🛠️ THE DIVISION 2 服务器维护公告**",
+                f"🗓️ **发帖日期：** {post_date}",
+                f"⏰ **维护开始时间：** {start_time}（北京时间）",
+                f"⌛ **预计维护时长：** {duration}",
+            ]
+            end_time = maintenance.get("countdown_end_time")
+            if isinstance(end_time, int) and end_time > 0:
+                modules.append({
+                    "type": "countdown",
+                    "mode": "default",
+                    "end_time": end_time,
+                })
+            modules.append({
+                "type": "section",
+                "paragraph": [{"type": "markdown", "text": "\n\n".join(maintenance_lines)}],
+            })
+            if announcement:
+                modules.append({
+                    "type": "section",
+                    "paragraph": [{"type": "markdown", "text": f"**官方公告：** {announcement[:700]}"}],
+                })
+            modules.append({
+                "type": "section",
+                "paragraph": [{"type": "markdown", "text": f"**官方 X：** {maintenance.get('post_url')}"}],
+            })
+
     for index, row in enumerate(rows, 1):
         mission = clean_text(pick(row, "mission", "mission_name", "name", "副本", "副本名称", default="未知行动区域"))
         code = clean_text(pick(row, "mission_code", "code", default=""))
