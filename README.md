@@ -1,20 +1,69 @@
 # The Division 2 Daily Loot
 
-全境封锁2每日掉落自动获取与黑盒机器人推送项目。所有任务由 GitHub Actions 托管执行，无需 VPS。
+全境封锁2每日掉落自动获取与黑盒机器人推送项目。GitHub Actions 执行数据获取和消息推送；Cloudflare Worker 负责按北京时间定时触发 GitHub Actions。
+
+## Cloudflare Worker 一键连接部署
+
+仓库根目录已提供 Cloudflare Workers Builds 可识别的配置文件：
+
+- `wrangler.jsonc)：Worker 名称、入口文件和 Cron 配置。
+- `package.json)：Wrangler 依赖及部署脚本。
+- Worker 源码：`cloudflare-worker/src/index.ts`。
+
+在 Cloudflare Dashboard 创建 Worker 并连接本 GitHub 仓库时，使用以下构建设置：
+
+| 设置 | 值 |
+|---|---|
+| Production branch | `main` |
+| Root directory | 仓库根目录（留空或 `/`，不要填写 `cloudflare-worker`） |
+| Build command | `npm install` |
+| Deploy command | `npm run deploy` |
+
+根目录的 `wrangler.jsonc` 会指向 `cloudflare-worker/src/index.ts`，因此无需在 Cloudflare 构建命令中手动 `cd` 子目录。
+
+部署后，在 Worker → Settings → Variables and Secrets 中新增 Secret：
+
+- Name：`GITHUB_TOKEN`
+- Value：GitHub Fine-grained Personal Access Token
+- Token 仅授权仓库 `TheDivision2-Daily-Loot` 的 `Actions: Read and write`；`Metadata: Read-only` 按 GitHub 要求保留。无需授予 Contents 或 Workflows 权限。
+
+不要把 Token 写入仓库文件、普通 Text 变量或日志。
+
+### Cron 调度
+
+`wrangler.jsonc` 已配置：
+
+- `1 8 * * *`：UTC 08:01，即北京时间每天 16:01，触发 `Daily Loot Fetch`。
+- `2 8 * * *`：UTC 08:02，即北京时间每天 16:02，触发 `Daily Loot Push`。
+
+Push 工作流会等待当天 Fetch 成功完成，再 checkout 最新数据并发送订阅消息。Cron 使用 UTC，Cloudflare 触发时间可能有少量延迟，不保证秒级准点。
+
+### 本地开发（可选）
+
+在仓库根目录执行：
+
+```bash
+npm install
+npx wrangler dev
+```
+
+部署：
+
+```bash
+npm run deploy
+```
 
 ## 自动流程（北京时间）
 
-- **16:00**：从 AgentHub 获取每日掉落 JSON，覆盖仓库固定文件 `全境封锁2恶化掉落/每日掉落.json`。
-- **16:10**：读取该文件，将中文 Markdown 表格推送到已订阅的黑盒房间。
-- 首次只需在目标黑盒房间发送一次订阅命令，订阅信息保存在 `data/blackbox_subscription.json`。
+- **16:01**：Cloudflare Worker 触发 GitHub Actions 的 Daily Loot Fetch，从 AgentHub 获取每日掉落 JSON。
+- **16:02**：Cloudflare Worker 触发 Daily Loot Push；该工作流等待 Fetch 成功后，读取最新 JSON 并推送订阅消息。
+- GitHub Actions 页面仍保留手动运行入口。
 
-## 首次启用
+## GitHub Actions 密钥
 
-1. 在仓库 Settings → Secrets and variables → Actions 添加 `HEYCHAT_BOT_TOKEN`（使用已重置的新 Token）。
-2. Actions → **Daily Loot Fetch** → Run workflow，确认固定 JSON 文件生成并提交。
-3. Actions → **Blackbox Bot** → Run workflow，启动监听。
-4. 在目标黑盒房间发送命令 ID `2124398728264114176` 对应的命令，确认订阅成功回复。
-5. 手动运行 **Daily Loot Push** 测试消息推送。
+在仓库 Settings → Secrets and variables → Actions 中配置：
+
+- `HEYCHAT_BOT_TOKEN`：黑盒机器人 Token。该 Token 继续由 GitHub Actions 使用，不需要放进 Cloudflare。
 
 ## 固定文件
 
@@ -23,6 +72,8 @@
 
 详细说明见 [BLACKBOX_BOT_README.md](BLACKBOX_BOT_README.md)。
 
-## 注意
+## 安全说明
 
-GitHub Actions 定时任务可能延迟；16:00 和 16:10 是计划触发时间，不保证精确准点。机器人监听任务最长运行 350 分钟，由后续 schedule 接续，交接时可能短暂离线。真实黑盒接口和 AgentHub 数据格式仍须以首次运行日志及实际消息验证。
+- Cloudflare 的 `GITHUB_TOKEN` 必须保存为 Secret。
+- 不要提交或公开任何机器人 Token。
+- 如果 Token 泄露，立即在对应平台撤销并重新创建。
