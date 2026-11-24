@@ -2,14 +2,11 @@
 """从公开 X 镜像 RSS 获取 @TheDivisionGame 最新服务器维护公告。"""
 from __future__ import annotations
 
-import calendar
 import html
 import json
 import logging
 import os
 import re
-import time
-import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -85,11 +82,10 @@ def parse_duration(text: str) -> int | None:
         if match:
             amount = float(match.group(1))
             return int(amount * (3600 if index == 0 else 60))
-    # 常见公告写法：estimated downtime: 6 hours / maintenance will last 90 minutes
     match = re.search(r"(?:downtime|maintenance|maintenance window)[^.\n]{0,50}?(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b", text, re.I)
     if match:
         unit = match.group(2).lower()
-        return int(float(match.group(1)) * (3600 if unit.startswith(("h",)) else 60))
+        return int(float(match.group(1)) * (3600 if unit.startswith("h") else 60))
     return None
 
 
@@ -111,7 +107,6 @@ def parse_start(text: str, posted_at: datetime | None) -> tuple[datetime | None,
         text, re.I
     )
     if not time_match:
-        # 允许 24 小时制，但必须带明确时区
         time_match = re.search(
             r"\b([01]?\d|2[0-3]):([0-5]\d)\s*(CET|CEST|ET|EST|EDT|PT|PST|PDT|UTC|GMT)\b",
             text, re.I
@@ -153,9 +148,7 @@ def fetch_feed(url: str) -> list[dict]:
     with urllib.request.urlopen(request, timeout=25) as response:
         raw = response.read()
     root = ET.fromstring(raw)
-    items = root.findall(".//item")
-    if not items:
-        items = root.findall(".//{*}entry")
+    items = root.findall(".//item") or root.findall(".//{*}entry")
     posts = []
     for item in items:
         def get(tag):
@@ -163,6 +156,7 @@ def fetch_feed(url: str) -> list[dict]:
             if node is None:
                 node = item.find("{*}" + tag)
             return (node.text or "").strip() if node is not None else ""
+
         title = plain(get("title"))
         description = plain(get("description") or get("summary") or get("content"))
         content = " ".join(part for part in (title, description) if part)
@@ -174,12 +168,7 @@ def fetch_feed(url: str) -> list[dict]:
         published = get("pubDate") or get("published") or get("updated")
         posted_at = parse_post_date(published)
         if content and is_maintenance(content):
-            posts.append({
-                "text": content,
-                "url": link,
-                "published_raw": published,
-                "posted_at": posted_at,
-            })
+            posts.append({"text": content, "url": link, "posted_at": posted_at})
     return posts
 
 
@@ -217,15 +206,17 @@ def main() -> None:
         "maintenance_start_timestamp": int(start_at.timestamp()) if start_at else None,
         "source_timezone": source_timezone,
         "duration_seconds": duration_seconds,
-        "duration_text": (f"{duration_seconds // 3600}小时" if duration_seconds and duration_seconds % 3600 == 0
-                          else f"{duration_seconds // 3600}小时{(duration_seconds % 3600) // 60}分钟" if duration_seconds and duration_seconds >= 3600
-                          else f"{duration_seconds // 60}分钟" if duration_seconds else None),
+        "duration_text": (
+            f"{duration_seconds // 3600}小时" if duration_seconds and duration_seconds % 3600 == 0
+            else f"{duration_seconds // 3600}小时{(duration_seconds % 3600) // 60}分钟" if duration_seconds and duration_seconds >= 3600
+            else f"{duration_seconds // 60}分钟" if duration_seconds else "未知"
+        ),
         "countdown_end_time": int(end_at) if end_at else None,
         "maintenance_end_beijing": datetime.fromtimestamp(end_at, BEIJING).strftime("%Y-%m-%d %H:%M") if end_at else None,
         "announcement": post["text"],
         "post_url": post["url"],
         "fetched_at_beijing": datetime.now(BEIJING).isoformat(timespec="seconds"),
-        "parser_note": "仅提取公告明确写出的时间和时长；未公布字段保持空值。",
+        "parser_note": "仅提取公告明确写出的时间和时长；未公布维护时长时显示未知且不生成维护结束倒计时。",
     }
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
