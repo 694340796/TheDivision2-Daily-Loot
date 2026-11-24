@@ -2,7 +2,9 @@
 """构建黑盒原生卡片：SHD 每日目标掉落情报。"""
 from __future__ import annotations
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from urllib.parse import quote
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +50,16 @@ def resolve_icon_url(icons: dict, loot: str) -> str | None:
     return ICON_BASE_URL + quote(filename.strip().lstrip("/"), safe="/._-")
 
 
+def next_beijing_16_timestamp() -> int:
+    """计算北京时间明天 16:00 的 Unix 秒级时间戳。"""
+    beijing_tz = ZoneInfo("Asia/Shanghai")
+    now = datetime.now(beijing_tz)
+    target = (now + timedelta(days=1)).replace(
+        hour=16, minute=0, second=0, microsecond=0
+    )
+    return int(target.timestamp())
+
+
 def build_card_json(subscription: bool = False) -> str:
     """生成黑盒 msg_type 20 原生卡片 JSON。"""
     if not DATA_PATH.is_file():
@@ -71,6 +83,12 @@ def build_card_json(subscription: bool = False) -> str:
     modules = [
         {"type": "header", "content": {"type": "plain-text", "text": "🟠 SHD  |  每日目标掉落"}},
         {"type": "section", "paragraph": [{"type": "markdown", "text": "\n\n".join(summary)}]},
+        {"type": "section", "paragraph": [{"type": "markdown", "text": "⏳ **下次情报刷新**\n\n北京时间 · 明日 16:00"}]},
+        {
+            "type": "countdown",
+            "mode": "calendar",
+            "end_time": next_beijing_16_timestamp(),
+        },
     ]
 
     for index, row in enumerate(rows, 1):
