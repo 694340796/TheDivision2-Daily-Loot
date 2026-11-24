@@ -134,7 +134,7 @@ def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: 
 
     modules = [
         {"type": "header", "content": {"type": "plain-text", "text": "🟠 SHD  |  每日目标掉落"}},
-        {"type": "section", "paragraph": [{"type": "markdown", "text": "\\n\\n".join(summary)}]},
+        {"type": "section", "paragraph": [{"type": "markdown", "text": "\n\n".join(summary)}]},
         {"type": "countdown", "mode": "calendar", "end_time": next_beijing_16_timestamp()},
     ]
 
@@ -149,7 +149,7 @@ def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: 
             title += f"  ·  {code}"
         modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": title}]})
 
-        detail = f"🎁 **目标掉落：** {loot}\\n\\n🏷️ **装备分类：** {category}"
+        detail = f"🎁 **目标掉落：** {loot}\n\n🏷️ **装备分类：** {category}"
         image_url = resolve_icon_url(icons, loot)
         if image_url:
             modules.append({
