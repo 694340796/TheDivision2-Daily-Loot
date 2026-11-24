@@ -73,17 +73,13 @@ def build_card_json(subscription: bool = False) -> str:
     summary = [
         "**THE DIVISION 2  /  SHD FIELD INTEL**",
         f"📅 **情报日期：** {clean_text(payload.get('snapshot_date') or '日期未知')}",
-        f"🎯 **目标区域：** {len(rows)} 个",
     ]
-    if payload.get("current_playlist") is not None:
-        summary.append(f"🛰️ **行动轮换：** #{clean_text(payload['current_playlist'])}")
     if subscription:
         summary.append("✅ **订阅状态：** 已开启每日自动情报")
 
     modules = [
         {"type": "header", "content": {"type": "plain-text", "text": "🟠 SHD  |  每日目标掉落"}},
         {"type": "section", "paragraph": [{"type": "markdown", "text": "\n\n".join(summary)}]},
-        {"type": "section", "paragraph": [{"type": "markdown", "text": "⏳ **下次情报刷新**\n\n北京时间 · 明日 16:00"}]},
         {
             "type": "countdown",
             "mode": "calendar",
