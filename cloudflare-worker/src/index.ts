@@ -85,7 +85,7 @@ export default {
       ).toISOString();
 
       await dispatchWorkflow(env, "daily-loot-push.yml", {
-        wait_for_fetch: true,
+        wait_for_fetch: "true",
         fetch_not_before: fetchNotBefore,
       });
       return;
