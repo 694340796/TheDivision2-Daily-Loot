@@ -162,6 +162,46 @@ def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: 
         else:
             modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
 
+    # 原型贮藏箱：只展示 vendor 数组中日期等于当前快照日期的记录。
+    snapshot_date = str(payload.get("snapshot_date") or "")
+    vendor_rows = payload.get("vendor") if isinstance(payload.get("vendor"), list) else []
+    today_vendor = []
+    for vendor_row in vendor_rows:
+        if isinstance(vendor_row, (list, tuple)) and len(vendor_row) >= 3:
+            vendor_date, crate_name, item_name = vendor_row[0], vendor_row[1], vendor_row[2]
+        elif isinstance(vendor_row, dict):
+            vendor_date = vendor_row.get("date") or vendor_row.get("day")
+            crate_name = vendor_row.get("type") or vendor_row.get("vendor") or vendor_row.get("name")
+            item_name = vendor_row.get("item") or vendor_row.get("loot") or vendor_row.get("category")
+        else:
+            continue
+        if str(vendor_date) == snapshot_date and crate_name and item_name:
+            today_vendor.append((clean_text(crate_name), clean_text(item_name)))
+
+    modules.append({
+        "type": "section",
+        "paragraph": [{"type": "markdown", "text": "🧰 **原型贮藏箱**"}],
+    })
+    if today_vendor:
+        for crate_name, item_name in today_vendor:
+            detail = f"📦 **{crate_name}：** {item_name}"
+            image_url = resolve_icon_url(icons, item_name)
+            if image_url:
+                modules.append({
+                    "type": "section",
+                    "paragraph": [
+                        {"type": "markdown", "text": detail},
+                        {"type": "image", "url": image_url, "size": "small"},
+                    ],
+                })
+            else:
+                modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
+    else:
+        modules.append({
+            "type": "section",
+            "paragraph": [{"type": "markdown", "text": "今日暂无原型贮藏箱数据。"}],
+        })
+
     modules.append({
         "type": "section",
         "paragraph": [{"type": "markdown", "text": "🟠 **SHD NETWORK**\n\n情报同步完成 · 特工，祝你行动顺利。"}],
