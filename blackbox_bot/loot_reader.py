@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""构建黑盒 Markdown 消息：SHD 风格每日目标掉落情报。"""
+"""构建黑盒原生卡片：SHD 每日目标掉落情报。"""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -21,7 +21,7 @@ def locate_records(payload: dict) -> list[dict]:
             rows = item.get(key)
             if isinstance(rows, list) and rows:
                 return [row for row in rows if isinstance(row, dict)]
-    raise ValueError(f"{DATA_PATH} 中没有非空掉落记录")
+    raise ValueError(f"{DATA_PATH} 中没有非空掉落记录数组")
 
 
 def clean_text(value: object) -> str:
@@ -40,27 +40,38 @@ def pick(record: dict, *keys: str, default: str = "未知") -> str:
     return default
 
 
-def build_markdown(subscription: bool = False) -> str:
-    """按黑盒 msg_type=4 Markdown 规则生成消息；段落间使用双换行。"""
+def resolve_icon_url(icons: dict, loot: str) -> str | None:
+    """仅使用每日 JSON icons 精确映射，不搜索、不猜测图标。"""
+    filename = icons.get(loot)
+    if not isinstance(filename, str) or not filename.strip():
+        return None
+    return ICON_BASE_URL + quote(filename.strip().lstrip("/"), safe="/._-")
+
+
+def build_card_json(subscription: bool = False) -> str:
+    """生成黑盒 msg_type 20 原生卡片 JSON。"""
     if not DATA_PATH.is_file():
-        raise FileNotFoundError(f"{DATA_PATH} 不存在")
+        raise FileNotFoundError(f"每日掉落文件不存在：{DATA_PATH}")
     payload = json.loads(DATA_PATH.read_text(encoding="utf-8-sig"))
     if not isinstance(payload, dict):
         raise ValueError("每日掉落 JSON 根节点格式错误")
     rows = locate_records(payload)
     icons = payload.get("icons") if isinstance(payload.get("icons"), dict) else {}
 
-    blocks = [
-        "# 🟠 THE DIVISION 2",
-        "## SHD FIELD INTEL  /  每日目标掉落",
-        f"📅 **情报日期**　{clean_text(payload.get('snapshot_date') or '日期未知')}",
-        f"🎯 **目标区域**　{len(rows)} 个",
+    summary = [
+        "**THE DIVISION 2  /  SHD FIELD INTEL**",
+        f"📅 **情报日期：** {clean_text(payload.get('snapshot_date') or '日期未知')}",
+        f"🎯 **目标区域：** {len(rows)} 个",
     ]
     if payload.get("current_playlist") is not None:
-        blocks.append(f"🛰️ **行动轮换**　#{clean_text(payload['current_playlist'])}")
+        summary.append(f"🛰️ **行动轮换：** #{clean_text(payload['current_playlist'])}")
     if subscription:
-        blocks.append("✅ **订阅成功**　已接入每日自动情报")
-    blocks.append("---")
+        summary.append("✅ **订阅状态：** 已开启每日自动情报")
+
+    modules = [
+        {"type": "header", "content": {"type": "plain-text", "text": "🟠 SHD  |  每日目标掉落"}},
+        {"type": "section", "paragraph": [{"type": "markdown", "text": "\n\n".join(summary)}]},
+    ]
 
     for index, row in enumerate(rows, 1):
         mission = clean_text(pick(row, "mission", "mission_name", "name", "副本", "副本名称", default="未知行动区域"))
@@ -68,23 +79,43 @@ def build_markdown(subscription: bool = False) -> str:
         loot = clean_text(pick(row, "loot", "target_loot", "targetLoot", "item", "装备", "掉落装备", default="未知掉落"))
         category = clean_text(pick(row, "category", "loot_type", "type", "item_type", "装备类型", default="未分类"))
 
-        title = f"**{index:02d}  |  {mission}**"
+        title = f"**{index:02d}  {mission}**"
         if code:
-            title += f"　·　{code}"
-        blocks.append(title)
+            title += f"  ·  {code}"
+        modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": title}]})
 
-        filename = icons.get(loot)
-        if isinstance(filename, str) and filename.strip():
-            url = ICON_BASE_URL + quote(filename.strip().lstrip("/"), safe="/._-")
-            blocks.append(f"![{loot}]({url})")
+        detail = f"🎁 **目标掉落：** {loot}\n\n🏷️ **装备分类：** {category}"
+        image_url = resolve_icon_url(icons, loot)
+        if image_url:
+            modules.append({
+                "type": "section",
+                "paragraph": [
+                    {"type": "markdown", "text": detail},
+                    {"type": "image", "url": image_url, "size": "small"},
+                ],
+            })
         else:
-            blocks.append("🎁")
-        blocks.append(f"🎁 **目标掉落**　{loot}")
-        blocks.append(f"🏷️ **装备分类**　{category}")
-        blocks.append("---")
+            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": detail}]})
 
-    blocks.extend([
-        "🟠 **SHD NETWORK**",
-        "情报同步完成　·　特工，祝你行动顺利。",
-    ])
-    return "\n\n".join(blocks)
+    modules.append({
+        "type": "section",
+        "paragraph": [{"type": "markdown", "text": "🟠 **SHD NETWORK**\n\n情报同步完成 · 特工，祝你行动顺利。"}],
+    })
+    card = {"data": [{
+        "type": "card",
+        "border_color": "#F36B21",
+        "size": "medium",
+        "modules": modules,
+    }]}
+    return json.dumps(card, ensure_ascii=False, separators=(",", ":"))
+
+
+def build_markdown(subscription: bool = False) -> str:
+    """保留旧接口兼容性。"""
+    card = json.loads(build_card_json(subscription))
+    lines = []
+    for module in card["data"][0]["modules"]:
+        for paragraph in module.get("paragraph", []):
+            if paragraph.get("type") == "markdown":
+                lines.append(paragraph.get("text", ""))
+    return "\n\n".join(lines)
