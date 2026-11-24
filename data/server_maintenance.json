@@ -1,0 +1,16 @@
+{
+  "source_account": "@TheDivisionGame",
+  "post_date_beijing": "2026-11-17 23:50:57",
+  "post_timestamp": 1794930657,
+  "maintenance_start_beijing": "2026-11-17 15:00",
+  "maintenance_start_timestamp": 1794898800,
+  "source_timezone": "CET",
+  "duration_seconds": 28800,
+  "duration_text": "8小时",
+  "countdown_end_time": 1794927600,
+  "maintenance_end_beijing": "2026-11-17 23:00",
+  "announcement": "The maintenance has been completed. The maintenance has been completed. Tom Clancy's The Division (@TheDivisionGame) #TheDivision2 maintenance alert! 📅 Tuesday, November 17 🕐 8:00 AM CET, 2:00 AM ET, 11:00 PM PT (Nov 16) ⏳ Estimated downtime is 8 hours Following last week's PC migration, PlayStation and Xbox players will be moved to the Crossplay servers, enabling Crossplay across all platforms once maintenance is complete. Please note: Leaderboards will remain unavailable until the new season launches. — http://nitter.mie.foundation/TheDivisionGame/status/2122374137989456316#m",
+  "post_url": "http://nitter.mie.foundation/TheDivisionGame/status/2122719145540133214#m",
+  "fetched_at_beijing": "2026-11-24T20:19:27+08:00",
+  "parser_note": "仅提取公告明确写出的时间和时长；未公布字段保持空值。"
+}
