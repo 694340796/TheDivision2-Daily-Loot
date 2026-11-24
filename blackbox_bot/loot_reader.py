@@ -78,47 +78,43 @@ def build_maintenance_card(maintenance: dict, now_ts: int) -> dict:
     ]
     start_ts = maintenance.get("maintenance_start_timestamp")
     end_ts = maintenance.get("countdown_end_time")
-    duration = maintenance.get("duration_text") or "未公布"
+    duration = maintenance.get("duration_text") or "未知"
     post_date = maintenance.get("post_date_beijing") or "未知"
     start_text = maintenance.get("maintenance_start_beijing") or "未公布"
 
-    # 已经过预计维护结束时间：明确显示无维护，不再显示过期倒计时。
+    # 只有明确存在且已过期的结束时间，才显示无维护。
     if isinstance(end_ts, int) and end_ts <= now_ts:
-        status = "🟢 **当前状态：无维护**"
-        modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": status}]})
-    elif isinstance(start_ts, int) and isinstance(end_ts, int) and end_ts > now_ts:
+        modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": "🟢 **当前状态：无维护**"}]})
+    elif isinstance(start_ts, int):
         if start_ts > now_ts:
             status = "🟠 **当前状态：即将维护**"
-            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": (
+            details = (
                 f"{status}\n\n"
                 f"🗓️ **发帖日期：** {post_date}（北京时间）\n\n"
                 f"⏰ **预计维护开始：** {start_text}（北京时间）\n\n"
                 f"⌛ **预计维护时长：** {duration}"
-            )}]})
-            modules.append({
-                "type": "section",
-                "paragraph": [{"type": "markdown", "text": "**距离维护开始**"}],
-            })
+            )
+            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": details}]})
+            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": "**距离维护开始**"}]})
             modules.append({"type": "countdown", "mode": "default", "end_time": start_ts})
         else:
             status = "🔴 **当前状态：维护进行中**"
-            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": (
+            details = (
                 f"{status}\n\n"
                 f"🗓️ **发帖日期：** {post_date}（北京时间）\n\n"
                 f"⏰ **维护开始时间：** {start_text}（北京时间）\n\n"
                 f"⌛ **预计维护时长：** {duration}"
-            )}]})
+            )
+            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": details}]})
 
-        modules.append({
-            "type": "section",
-            "paragraph": [{"type": "markdown", "text": "**距离预计维护结束**"}],
-        })
-        modules.append({"type": "countdown", "mode": "default", "end_time": end_ts})
+        # 只有推文明确提供维护时长并计算出结束时间，才展示结束倒计时。
+        if isinstance(end_ts, int) and end_ts > now_ts:
+            modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": "**距离预计维护结束**"}]})
+            modules.append({"type": "countdown", "mode": "default", "end_time": end_ts})
     else:
-        # 缺少可靠时间数据时不推测维护状态。
         modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": (
-            "🟢 **当前状态：无维护**\n\n"
-            "暂无可确认的进行中或即将开始的服务器维护安排。"
+            "⚪ **当前状态：暂无可确认的维护安排**\n\n"
+            "尚未获取到有效的维护开始时间，暂不判断服务器状态。"
         )}]})
 
     return {
@@ -127,7 +123,6 @@ def build_maintenance_card(maintenance: dict, now_ts: int) -> dict:
         "size": "medium",
         "modules": modules,
     }
-
 
 def build_loot_card(payload: dict, rows: list[dict], icons: dict, subscription: bool) -> dict:
     summary = [
