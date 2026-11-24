@@ -10,8 +10,19 @@ export interface Env {
   GITHUB_REF?: string;
 }
 
-const FETCH_CRON = "1 8 * * *"; // Beijing 16:01
-const PUSH_CRON = "2 8 * * *";  // Beijing 16:02
+const CHECK_CRON = "* * * * *"; // Every minute; decide tasks using Asia/Shanghai time.
+const TIME_ZONE = "Asia/Shanghai";
+
+function getBeijingHourMinute(timestamp: number): { hour: string; minute: string } {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { hour: values.hour, minute: values.minute };
+}
 const GITHUB_API_VERSION = "2022-11-28";
 
 async function dispatchWorkflow(
@@ -114,7 +125,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
         <div class="foot"><span>GitHub Actions · Daily Loot Push</span><span class="status">● 已配置</span></div>
       </article>
     </section>
-    <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>倒计时根据浏览器当前时间实时计算；Cloudflare Cron 使用 UTC，实际触发可能有少量延迟，不保证秒级准点。</section>
+    <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>Cloudflare Worker 每分钟触发一次，并使用 Asia/Shanghai 时区检查计划时间；北京时间 16:01 触发获取，16:02 触发推送。调度可能有少量延迟，不保证秒级准点。</section>
     <footer class="bottom">THE DIVISION 2 · DAILY LOOT SCHEDULER</footer>
   </main>
   <script>
@@ -165,12 +176,27 @@ export default {
       }),
     );
 
-    if (controller.cron === FETCH_CRON) {
+    if (controller.cron !== CHECK_CRON) {
+      console.log(JSON.stringify({ event: "ignored_cron", cron: controller.cron }));
+      return;
+    }
+
+    // Use the scheduled instant, not the Cloudflare data-center's local timezone.
+    const beijing = getBeijingHourMinute(controller.scheduledTime);
+    console.log(JSON.stringify({
+      event: "beijing_time_checked",
+      timezone: TIME_ZONE,
+      hour: beijing.hour,
+      minute: beijing.minute,
+      scheduledTime: new Date(controller.scheduledTime).toISOString(),
+    }));
+
+    if (beijing.hour === "16" && beijing.minute === "01") {
       await dispatchWorkflow(env, "daily-loot-fetch.yml");
       return;
     }
 
-    if (controller.cron === PUSH_CRON) {
+    if (beijing.hour === "16" && beijing.minute === "02") {
       const fetchNotBefore = new Date(
         controller.scheduledTime - 3 * 60 * 1000,
       ).toISOString();
@@ -182,7 +208,12 @@ export default {
       return;
     }
 
-    console.log(JSON.stringify({ event: "ignored_cron", cron: controller.cron }));
+    console.log(JSON.stringify({
+      event: "no_workflow_due",
+      timezone: TIME_ZONE,
+      hour: beijing.hour,
+      minute: beijing.minute,
+    }));
   },
 
   async fetch(request: Request): Promise<Response> {
