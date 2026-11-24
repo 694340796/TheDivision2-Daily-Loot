@@ -14,7 +14,7 @@ import urllib.request
 
 import websockets
 
-from .loot_reader import build_markdown
+from .loot_reader import build_card_json
 
 logger = logging.getLogger(__name__)
 
@@ -40,49 +40,19 @@ class HeychatBot:
         self.stopping = False
 
     def send_message(self, room_id: str, channel_info: dict, message: str) -> None:
-        channel_id = str(channel_info.get("channel_id", ""))
-        if not room_id or not channel_id:
-            raise ValueError("命令事件缺少 room_id 或 channel_id")
-        # Markdown 图片尺寸必须通过 addition.img_files_info 声明。
-        import re
-        image_urls = re.findall(r"!\[[^\]]*\]\((https?://[^)]+)\)", message)
-        image_infos = [
-            {"url": image_url, "width": 64, "height": 64}
-            for image_url in image_urls
-        ]
-        payload = {
-            "msg": message,
-            "msg_type": 4,
-            "heychat_ack_id": "",
-            "reply_id": "",
-            "room_id": str(room_id),
-            "addition": json.dumps(
-                {"img_files_info": image_infos},
-                ensure_ascii=False,
-                separators=(",", ":"),
-            ),
-            "at_user_id": "",
-            "at_role_id": "",
-            "mention_channel_id": "",
-            "channel_id": channel_id,
-            "channel_type": int(channel_info.get("channel_type", 0) or 0),
+        """兼容文本提示，但统一通过 msg_type=20 原生卡片发送。"""
+        card = {
+            "data": [{
+                "type": "card",
+                "border_color": "#F36B21",
+                "size": "medium",
+                "modules": [{
+                    "type": "section",
+                    "paragraph": [{"type": "markdown", "text": message}],
+                }],
+            }]
         }
-        url = HTTP_HOST + SEND_MSG_URL + COMMON_PARAMS
-        request = urllib.request.Request(
-            url,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json;charset=UTF-8",
-                "token": self.token,
-                "User-Agent": "TheDivision2-BlackboxBot/1.0",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=20) as response:
-            body = response.read().decode("utf-8", errors="replace")
-            if response.status < 200 or response.status >= 300:
-                raise RuntimeError(f"黑盒消息接口 HTTP {response.status}: {body[:300]}")
-            logger.info("黑盒消息接口已接受请求，HTTP %s", response.status)
+        self.send_card(room_id, channel_info, json.dumps(card, ensure_ascii=False, separators=(",", ":")))
 
     def send_card(self, room_id: str, channel_info: dict, card_message: str) -> None:
         """发送黑盒原生卡片（msg_type=20）。"""
@@ -122,8 +92,9 @@ class HeychatBot:
             except json.JSONDecodeError:
                 result = {}
             if isinstance(result, dict):
-                code = result.get("status", result.get("code", 0))
-                if code not in (0, 200, "0", "200", None):
+                status = result.get("status")
+                code = result.get("code", 0)
+                if status not in (None, "ok", "success") or code not in (0, 200, "0", "200", None):
                     raise RuntimeError(f"黑盒卡片接口业务失败：{body[:500]}")
             logger.info("黑盒原生卡片请求已接受，HTTP %s，响应=%s", response.status, body[:300])
 
@@ -210,7 +181,7 @@ class HeychatBot:
 
         try:
             # 订阅成功后，发送当前数据的 SHD 风格 Markdown 情报。
-            message = await asyncio.to_thread(build_markdown, True)
+            card_message = await asyncio.to_thread(build_card_json, True)
         except Exception:
             logger.exception("订阅已保存，但构建每日掉落卡片失败")
             try:
@@ -225,9 +196,9 @@ class HeychatBot:
             return
 
         try:
-            await asyncio.to_thread(self.send_message, room_id, channel_info, message)
+            await asyncio.to_thread(self.send_card, room_id, channel_info, card_message)
             logger.info(
-                "订阅成功情报消息已发送，room_id=%s channel_id=%s",
+                "订阅成功原生卡片已发送，room_id=%s channel_id=%s",
                 room_id,
                 channel_info.get("channel_id"),
             )
