@@ -1,13 +1,23 @@
 name: Daily Loot Push
 
 on:
-  # 08:02 UTC = 北京时间 16:02
-  schedule:
-    - cron: "2 8 * * *"
+  # 由 Cloudflare Worker 每天北京时间 16:02 通过 workflow_dispatch 触发
   workflow_dispatch:
+    inputs:
+      wait_for_fetch:
+        description: "Wait for today's Daily Loot Fetch workflow to finish"
+        required: false
+        default: "false"
+        type: boolean
+      fetch_not_before:
+        description: "Only wait for a fetch run created at or after this UTC time"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: daily-loot-push
@@ -16,10 +26,51 @@ concurrency:
 jobs:
   push:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 25
     steps:
       - name: Checkout latest repository data
         uses: actions/checkout@v7
+
+      - name: Wait for today's fetch workflow
+        if: ${{ inputs.wait_for_fetch == true }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FETCH_NOT_BEFORE: ${{ inputs.fetch_not_before }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$FETCH_NOT_BEFORE" ]; then
+            echo "::error::fetch_not_before is required when wait_for_fetch is true"
+            exit 1
+          fi
+
+          echo "Waiting for Daily Loot Fetch run created at or after: $FETCH_NOT_BEFORE"
+
+          for attempt in $(seq 1 90); do
+            RUN_INFO="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/daily-loot-fetch.yml/runs?branch=main&per_page=20" \
+              --jq "[.workflow_runs[] | select(.event == \"workflow_dispatch\" and .created_at >= \"$FETCH_NOT_BEFORE\")] | sort_by(.created_at) | last | if . == null then \"\" else [.id, .status, (.conclusion // \"\")] | @tsv end" || true)"
+
+            if [ -n "$RUN_INFO" ]; then
+              IFS=$'\t' read -r RUN_ID RUN_STATUS RUN_CONCLUSION <<< "$RUN_INFO"
+              echo "Fetch run #$RUN_ID status=$RUN_STATUS conclusion=$RUN_CONCLUSION"
+
+              if [ "$RUN_STATUS" = "completed" ]; then
+                if [ "$RUN_CONCLUSION" = "success" ]; then
+                  echo "Fetch completed successfully."
+                  exit 0
+                fi
+                echo "::error::Daily Loot Fetch failed: $RUN_CONCLUSION"
+                exit 1
+              fi
+            else
+              echo "Fetch run not visible yet."
+            fi
+
+            sleep 10
+          done
+
+          echo "::error::Timed out waiting for Daily Loot Fetch after 15 minutes."
+          exit 1
 
       - name: Set up Python
         uses: actions/setup-python@v7
