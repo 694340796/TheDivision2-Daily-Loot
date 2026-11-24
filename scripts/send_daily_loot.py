@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from blackbox_bot.heychat_client import HeychatBot
-from blackbox_bot.loot_reader import build_card_json
+from blackbox_bot.loot_reader import build_markdown
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("daily-loot-push")
@@ -48,11 +48,11 @@ def main() -> None:
     if not room_id or not channel_id:
         raise ValueError("订阅记录缺少 room_id 或 channel_id")
 
-    card_message = build_card_json()
+    message = build_markdown()
     bot = HeychatBot(token)
-    bot.send_card(room_id, channel_info, card_message)
+    bot.send_message(room_id, channel_info, message)
     log.info(
-        "每日掉落原生卡片已发送到订阅频道 room_id=%s channel_id=%s",
+        "每日掉落 Markdown 情报已发送到订阅频道 room_id=%s channel_id=%s",
         room_id,
         channel_id,
     )
