@@ -14,7 +14,7 @@ import urllib.request
 
 import websockets
 
-from .loot_reader import build_markdown
+from .loot_reader import build_card_json, build_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,41 @@ class HeychatBot:
             if response.status < 200 or response.status >= 300:
                 raise RuntimeError(f"黑盒消息接口 HTTP {response.status}: {body[:300]}")
             logger.info("黑盒消息接口已接受请求，HTTP %s", response.status)
+
+    def send_card(self, room_id: str, channel_info: dict, card_message: str) -> None:
+        """发送黑盒原生卡片（msg_type=20）。"""
+        channel_id = str(channel_info.get("channel_id", ""))
+        if not room_id or not channel_id:
+            raise ValueError("命令事件缺少 room_id 或 channel_id")
+        payload = {
+            "msg": card_message,
+            "msg_type": 20,
+            "heychat_ack_id": "",
+            "reply_id": "",
+            "room_id": str(room_id),
+            "addition": "{}",
+            "at_user_id": "",
+            "at_role_id": "",
+            "mention_channel_id": "",
+            "channel_id": channel_id,
+            "channel_type": int(channel_info.get("channel_type", 0) or 0),
+        }
+        url = HTTP_HOST + SEND_MSG_URL + COMMON_PARAMS
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json;charset=UTF-8",
+                "token": self.token,
+                "User-Agent": "TheDivision2-BlackboxBot/1.0",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            body = response.read().decode("utf-8", errors="replace")
+            if response.status < 200 or response.status >= 300:
+                raise RuntimeError(f"黑盒卡片接口 HTTP {response.status}: {body[:300]}")
+            logger.info("黑盒原生卡片已发送，HTTP %s", response.status)
 
     def save_subscription(self, room_id: str, channel_info: dict) -> None:
         """用 Actions 的 GITHUB_TOKEN 将订阅频道保存为仓库固定 JSON 文件。"""
@@ -154,34 +189,31 @@ class HeychatBot:
                 logger.exception("发送订阅失败提示也失败")
             return
 
-        confirmation = (
-            "已成功订阅全境封锁2每日掉落！\n"
-            "以下是当前仓库保存的每日掉落：\n\n"
-        )
         try:
-            # 收到订阅命令时，立即把当前掉落表格一并回复。
-            loot_table = await asyncio.to_thread(build_markdown)
-            reply = confirmation + loot_table + (
-                "\n\n之后每天北京时间 16:10 自动推送最新掉落。"
-            )
+            # 订阅成功后，直接发送当前数据的 SHD 风格原生卡片。
+            card_message = await asyncio.to_thread(build_card_json, True)
         except Exception:
-            logger.exception("订阅已保存，但读取每日掉落列表失败")
-            reply = (
-                "已成功订阅全境封锁2每日掉落！\n"
-                "但暂时无法读取当前掉落列表，请检查仓库中的 "
-                "全境封锁2恶化掉落/每日掉落.json。\n"
-                "之后每天北京时间 16:10 自动推送最新掉落。"
-            )
+            logger.exception("订阅已保存，但构建每日掉落卡片失败")
+            try:
+                await asyncio.to_thread(
+                    self.send_message,
+                    room_id,
+                    channel_info,
+                    "订阅已保存，但当前无法生成掉落卡片，请稍后重试。",
+                )
+            except Exception:
+                logger.exception("发送卡片生成失败提示也失败")
+            return
 
         try:
-            await asyncio.to_thread(self.send_message, room_id, channel_info, reply)
+            await asyncio.to_thread(self.send_card, room_id, channel_info, card_message)
             logger.info(
-                "订阅确认及当前掉落列表已发送，room_id=%s channel_id=%s",
+                "订阅成功卡片已发送，room_id=%s channel_id=%s",
                 room_id,
                 channel_info.get("channel_id"),
             )
         except Exception:
-            logger.exception("订阅已保存，但发送订阅回复失败")
+            logger.exception("订阅已保存，但发送订阅卡片失败")
 
     async def heartbeat(self) -> None:
         while not self.stopping:
