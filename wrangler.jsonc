@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "thedivision2-daily-loot-scheduler",
+  "name": "thedivision2-daily-loot",
   "main": "cloudflare-worker/src/index.ts",
   "compatibility_date": "2026-11-24",
   "workers_dev": true,
@@ -9,8 +9,7 @@
   },
   "triggers": {
     "crons": [
-      "1 8 * * *",
-      "2 8 * * *"
+      "* * * * *"
     ]
   }
 }
