@@ -74,32 +74,17 @@ class HeychatBot:
             logger.info("黑盒消息接口已接受请求，HTTP %s", response.status)
 
     def send_card(self, room_id: str, channel_info: dict, card_message: str) -> None:
-        """发送黑盒卡片消息；支持附带统一尺寸的图片元数据。"""
+        """发送黑盒原生卡片（msg_type=20）。"""
         channel_id = str(channel_info.get("channel_id", ""))
         if not room_id or not channel_id:
             raise ValueError("命令事件缺少 room_id 或 channel_id")
-
-        # 新版 loot_reader 返回 msg/addition 封装；兼容旧版原生卡片 JSON。
-        message_text = card_message
-        addition = "{}"
-        try:
-            envelope = json.loads(card_message)
-            if isinstance(envelope, dict) and isinstance(envelope.get("msg"), str):
-                message_text = envelope["msg"]
-                raw_addition = envelope.get("addition", "{}")
-                addition = raw_addition if isinstance(raw_addition, str) else json.dumps(
-                    raw_addition, ensure_ascii=False, separators=(",", ":")
-                )
-        except json.JSONDecodeError:
-            pass
-
         payload = {
-            "msg": message_text,
-            "msg_type": 4 if message_text != card_message else 20,
+            "msg": card_message,
+            "msg_type": 20,
             "heychat_ack_id": "",
             "reply_id": "",
             "room_id": str(room_id),
-            "addition": addition,
+            "addition": "{}",
             "at_user_id": "",
             "at_role_id": "",
             "mention_channel_id": "",
@@ -121,7 +106,15 @@ class HeychatBot:
             body = response.read().decode("utf-8", errors="replace")
             if response.status < 200 or response.status >= 300:
                 raise RuntimeError(f"黑盒卡片接口 HTTP {response.status}: {body[:300]}")
-            logger.info("黑盒原生卡片已发送，HTTP %s", response.status)
+            try:
+                result = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                result = {}
+            if isinstance(result, dict):
+                code = result.get("status", result.get("code", 0))
+                if code not in (0, 200, "0", "200", None):
+                    raise RuntimeError(f"黑盒卡片接口业务失败：{body[:500]}")
+            logger.info("黑盒原生卡片请求已接受，HTTP %s，响应=%s", response.status, body[:300])
 
     def save_subscription(self, room_id: str, channel_info: dict) -> None:
         """用 Actions 的 GITHUB_TOKEN 将订阅频道保存为仓库固定 JSON 文件。"""
