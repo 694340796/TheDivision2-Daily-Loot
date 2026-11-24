@@ -14,7 +14,7 @@ import urllib.request
 
 import websockets
 
-from .loot_reader import build_card_json, build_markdown
+from .loot_reader import build_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +43,24 @@ class HeychatBot:
         channel_id = str(channel_info.get("channel_id", ""))
         if not room_id or not channel_id:
             raise ValueError("命令事件缺少 room_id 或 channel_id")
+        # Markdown 图片尺寸必须通过 addition.img_files_info 声明。
+        import re
+        image_urls = re.findall(r"!\[[^\]]*\]\((https?://[^)]+)\)", message)
+        image_infos = [
+            {"url": image_url, "width": 64, "height": 64}
+            for image_url in image_urls
+        ]
         payload = {
             "msg": message,
             "msg_type": 4,
             "heychat_ack_id": "",
             "reply_id": "",
             "room_id": str(room_id),
-            "addition": "",
+            "addition": json.dumps(
+                {"img_files_info": image_infos},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ),
             "at_user_id": "",
             "at_role_id": "",
             "mention_channel_id": "",
@@ -198,8 +209,8 @@ class HeychatBot:
             return
 
         try:
-            # 订阅成功后，直接发送当前数据的 SHD 风格原生卡片。
-            card_message = await asyncio.to_thread(build_card_json, True)
+            # 订阅成功后，发送当前数据的 SHD 风格 Markdown 情报。
+            message = await asyncio.to_thread(build_markdown, True)
         except Exception:
             logger.exception("订阅已保存，但构建每日掉落卡片失败")
             try:
@@ -207,21 +218,21 @@ class HeychatBot:
                     self.send_message,
                     room_id,
                     channel_info,
-                    "订阅已保存，但当前无法生成掉落卡片，请稍后重试。",
+                    "订阅已保存，但当前无法生成每日掉落情报，请稍后重试。",
                 )
             except Exception:
                 logger.exception("发送卡片生成失败提示也失败")
             return
 
         try:
-            await asyncio.to_thread(self.send_card, room_id, channel_info, card_message)
+            await asyncio.to_thread(self.send_message, room_id, channel_info, message)
             logger.info(
-                "订阅成功卡片已发送，room_id=%s channel_id=%s",
+                "订阅成功情报消息已发送，room_id=%s channel_id=%s",
                 room_id,
                 channel_info.get("channel_id"),
             )
         except Exception:
-            logger.exception("订阅已保存，但发送订阅卡片失败")
+            logger.exception("订阅已保存，但发送订阅情报失败")
 
     async def heartbeat(self) -> None:
         while not self.stopping:
