@@ -1,9 +1,7 @@
 name: Daily Loot Fetch
 
 on:
-  # 08:01 UTC = 北京时间 16:01
-  schedule:
-    - cron: "1 8 * * *"
+  # 由 Cloudflare Worker 每天北京时间 16:01 通过 workflow_dispatch 触发
   workflow_dispatch:
 
 permissions:
