@@ -13,6 +13,17 @@ export interface Env {
 
 const CHECK_CRON = "* * * * *"; // Every minute; decide tasks using Asia/Shanghai time.
 const TIME_ZONE = "Asia/Shanghai";
+// TEMPORARY: one-time cron diagnostic. Remove this constant and its branch after the test.
+const TEMP_TEST_TRIGGER_BEIJING = "2026-11-25T18:40";
+
+function getBeijingDateMinute(timestamp: number): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date(timestamp));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+}
 
 function getBeijingHourMinute(timestamp: number): { hour: string; minute: string } {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -236,13 +247,27 @@ export default {
 
     // Use the scheduled instant, not the Cloudflare data-center's local timezone.
     const beijing = getBeijingHourMinute(controller.scheduledTime);
+    const beijingDateMinute = getBeijingDateMinute(controller.scheduledTime);
     console.log(JSON.stringify({
       event: "beijing_time_checked",
       timezone: TIME_ZONE,
+      beijingDateMinute,
       hour: beijing.hour,
       minute: beijing.minute,
       scheduledTime: new Date(controller.scheduledTime).toISOString(),
     }));
+
+    // One-time diagnostic run to prove the automatic Cron -> GitHub dispatch path.
+    // This only starts the fetch workflow; it does not send a bot message.
+    if (beijingDateMinute === TEMP_TEST_TRIGGER_BEIJING) {
+      console.log(JSON.stringify({
+        event: "temporary_cron_test_trigger",
+        target: TEMP_TEST_TRIGGER_BEIJING,
+        workflow: "daily-loot-fetch.yml",
+      }));
+      await dispatchWorkflow(env, "daily-loot-fetch.yml");
+      return;
+    }
 
     if (beijing.hour === "16" && beijing.minute === "01") {
       await dispatchWorkflow(env, "daily-loot-fetch.yml");
