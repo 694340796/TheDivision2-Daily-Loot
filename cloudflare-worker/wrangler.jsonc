@@ -15,8 +15,7 @@
   },
   "secrets": {
     "required": [
-      "GITHUB_TOKEN",
-      "TRIGGER_SECRET"
+      "GITHUB_TOKEN"
     ]
   }
 }
