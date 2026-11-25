@@ -8,6 +8,7 @@ export interface Env {
   GITHUB_OWNER?: string;
   GITHUB_REPO?: string;
   GITHUB_REF?: string;
+  TRIGGER_SECRET?: string;
 }
 
 const CHECK_CRON = "* * * * *"; // Every minute; decide tasks using Asia/Shanghai time.
@@ -96,7 +97,20 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .count-label{margin-top:22px;color:var(--muted);font-size:12px}.count{font-size:clamp(23px,4vw,30px);font-weight:750;letter-spacing:.4px;margin-top:5px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
     .foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-top:15px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
     .status{color:#9fe5c0}.note{margin-top:18px;border:1px solid var(--line);border-radius:16px;padding:16px 18px;color:var(--muted);font-size:12px;line-height:1.8;background:rgba(17,26,45,.62)}
-    .note strong{color:#dbeafe}.bottom{text-align:center;color:#64748b;font-size:11px;margin-top:24px}
+    .note strong{color:#dbeafe}
+    .test-panel{margin-top:18px;border:1px solid rgba(84,214,232,.22);border-radius:20px;padding:22px;background:linear-gradient(145deg,rgba(17,29,49,.96),rgba(13,21,37,.96))}
+    .test-title{font-size:16px;font-weight:750}.test-title span{font-size:10px;letter-spacing:1.5px;color:var(--cyan);margin-left:8px}
+    .test-panel p{font-size:12px;line-height:1.7;color:var(--muted);margin:9px 0 16px}
+    .test-panel label{display:block;font-size:12px;color:#cbd5e1;margin-bottom:7px}
+    .test-panel input{width:100%;max-width:480px;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#080f1e;color:var(--text);outline:none}
+    .test-panel input:focus{border-color:var(--cyan)}
+    .test-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .test-btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;color:#07111e;cursor:pointer;transition:filter .15s,transform .15s}
+    .test-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}.test-btn:disabled{opacity:.55;cursor:wait;transform:none}
+    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}
+    #trigger-result{font-size:12px;line-height:1.7;margin-top:12px;color:#a9b7ce;min-height:18px}
+    #trigger-result.ok{color:#8ce8b8}#trigger-result.error{color:#ff9b9b}
+    .bottom{text-align:center;color:#64748b;font-size:11px;margin-top:24px}
     @media(max-width:680px){.wrap{padding-top:28px}.top{align-items:flex-start}.live{font-size:0;padding:9px}.live i{margin:0}.hero{padding:22px}.grid{grid-template-columns:1fr}.task{min-height:230px}.foot{flex-wrap:wrap}}
   </style>
 </head>
@@ -126,6 +140,18 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       </article>
     </section>
     <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>Cloudflare Worker 每分钟触发一次，并使用 Asia/Shanghai 时区检查计划时间；北京时间 16:01 触发获取，16:02 触发推送。调度可能有少量延迟，不保证秒级准点。</section>
+
+    <section class="test-panel">
+      <div class="test-title">手动触发测试 <span>MANUAL TEST</span></div>
+      <p>用于验证 Cloudflare Worker 是否能够成功调用 GitHub Actions。请输入你设置的测试密钥，再选择要触发的工作流。</p>
+      <label for="trigger-key">测试密钥</label>
+      <input id="trigger-key" type="password" autocomplete="off" placeholder="输入 Cloudflare Secret：TRIGGER_SECRET">
+      <div class="test-actions">
+        <button class="test-btn fetch-btn" data-workflow="fetch">测试触发每日掉落获取</button>
+        <button class="test-btn push-btn" data-workflow="push">测试触发每日订阅推送</button>
+      </div>
+      <div id="trigger-result" role="status" aria-live="polite"></div>
+    </section>
     <footer class="bottom">THE DIVISION 2 · DAILY LOOT SCHEDULER</footer>
   </main>
   <script>
@@ -153,6 +179,33 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       document.getElementById("fetch-count").textContent=countdown(nextRun(16,1));
       document.getElementById("push-count").textContent=countdown(nextRun(16,2));
     }
+
+    document.querySelectorAll(".test-btn").forEach(button => {
+      button.addEventListener("click", async () => {
+        const key = document.getElementById("trigger-key").value.trim();
+        const result = document.getElementById("trigger-result");
+        if (!key) { result.className = "error"; result.textContent = "请先输入测试密钥。"; return; }
+        const workflow = button.dataset.workflow;
+        document.querySelectorAll(".test-btn").forEach(item => item.disabled = true);
+        result.className = ""; result.textContent = "正在请求 Cloudflare Worker…";
+        try {
+          const response = await fetch("/api/trigger", {
+            method: "POST",
+            headers: {"Content-Type":"application/json","X-Trigger-Key":key},
+            body: JSON.stringify({workflow})
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+          result.className = "ok";
+          result.textContent = "✓ GitHub 已接受工作流触发请求：" + data.workflow + "。请到仓库 Actions 页面查看运行状态。";
+        } catch (error) {
+          result.className = "error";
+          result.textContent = "触发失败：" + (error.message || String(error));
+        } finally {
+          document.querySelectorAll(".test-btn").forEach(item => item.disabled = false);
+        }
+      });
+    });
     tick();setInterval(tick,1000);
   </script>
 </body>
@@ -216,7 +269,47 @@ export default {
     }));
   },
 
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/trigger") {
+      if (request.method !== "POST") {
+        return Response.json({ error: "Method Not Allowed" }, { status: 405, headers: { Allow: "POST" } });
+      }
+      if (!env.TRIGGER_SECRET) {
+        return Response.json({ error: "Worker 尚未配置 TRIGGER_SECRET" }, { status: 503 });
+      }
+      const supplied = request.headers.get("X-Trigger-Key") || "";
+      let mismatch = supplied.length ^ env.TRIGGER_SECRET.length;
+      const max = Math.max(supplied.length, env.TRIGGER_SECRET.length);
+      for (let i = 0; i < max; i++) {
+        mismatch |= (supplied.charCodeAt(i) || 0) ^ (env.TRIGGER_SECRET.charCodeAt(i) || 0);
+      }
+      if (mismatch !== 0) {
+        return Response.json({ error: "测试密钥错误" }, { status: 401 });
+      }
+      let body: { workflow?: string };
+      try {
+        body = await request.json() as { workflow?: string };
+      } catch {
+        return Response.json({ error: "请求内容不是有效 JSON" }, { status: 400 });
+      }
+      const workflows: Record<string, string> = {
+        fetch: "daily-loot-fetch.yml",
+        push: "daily-loot-push.yml",
+      };
+      const workflowFile = body.workflow ? workflows[body.workflow] : undefined;
+      if (!workflowFile) {
+        return Response.json({ error: "不支持的工作流类型" }, { status: 400 });
+      }
+      try {
+        await dispatchWorkflow(env, workflowFile);
+        return Response.json({ ok: true, workflow: workflowFile, message: "GitHub 已接受 workflow_dispatch 请求" }, { status: 202 });
+      } catch (error) {
+        console.error("Manual workflow trigger failed:", error);
+        return Response.json({ error: error instanceof Error ? error.message : "GitHub API 调用失败" }, { status: 502 });
+      }
+    }
+
     if (request.method !== "GET") {
       return new Response("Method Not Allowed", {
         status: 405,
@@ -230,7 +323,7 @@ export default {
         "Cache-Control": "no-store, max-age=0",
         "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "no-referrer",
-        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
       },
     });
   },
