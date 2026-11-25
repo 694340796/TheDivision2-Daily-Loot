@@ -5,16 +5,13 @@ interface ScheduledController {
 
 export interface Env {
   GITHUB_TOKEN: string;
-  GITHUB_OWNER?: string;
-  GITHUB_REPO?: string;
-  GITHUB_REF?: string;
   TRIGGER_SECRET?: string;
 }
 
 const CHECK_CRON = "* * * * *"; // Every minute; decide tasks using Asia/Shanghai time.
 const TIME_ZONE = "Asia/Shanghai";
 // TEMPORARY: one-time cron diagnostic. Remove this constant and its branch after the test.
-const TEMP_TEST_TRIGGER_BEIJING = "2026-11-25T19:00";
+const TEMP_TEST_TRIGGER_BEIJING = "2026-11-25T19:15";
 
 function getBeijingDateMinute(timestamp: number): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -42,9 +39,10 @@ async function dispatchWorkflow(
   workflowFile: string,
   inputs?: Record<string, string | boolean>,
 ): Promise<void> {
-  const owner = env.GITHUB_OWNER || "694340796";
-  const repo = env.GITHUB_REPO || "TheDivision2-Daily-Loot";
-  const ref = env.GITHUB_REF || "main";
+  // Repository coordinates are fixed in code; no Cloudflare Text vars are required.
+  const owner = "694340796";
+  const repo = "TheDivision2-Daily-Loot";
+  const ref = "main";
   const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowFile}/dispatches`;
 
   const response = await fetch(url, {
@@ -145,7 +143,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     <section class="temp-run">
       <div class="temp-head"><div class="temp-title">临时自动执行 · 数据获取 + 黑盒消息推送</div><span class="temp-tag">ONE-TIME TEST</span></div>
       <div class="temp-time" id="temp-count">读取倒计时…</div>
-      <div class="temp-desc">2026年11月25日 · 北京时间 19:00<br>到点后先触发 Daily Loot Fetch，随后触发 Daily Loot Push；推送工作流会等待本次获取成功后再发送消息。</div>
+      <div class="temp-desc">2026年11月25日 · 北京时间 19:15<br>到点后先触发 Daily Loot Fetch，随后触发 Daily Loot Push；推送工作流会等待本次获取成功后再发送消息。</div>
       <div class="temp-state" id="temp-state">● 等待 Cloudflare Cron 自动触发</div>
     </section>
     <section class="grid">
@@ -195,7 +193,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       const minutes=Math.floor(seconds/60);seconds%=60;
       return (days>0?days+"天 ":"")+pad(hours)+"时 "+pad(minutes)+"分 "+pad(seconds)+"秒";
     }
-    const temporaryTarget = new Date("2026-11-25T19:00:00+08:00").getTime();
+    const temporaryTarget = new Date("2026-11-25T19:15:00+08:00").getTime();
     function tick(){
       const now=new Date();
       document.getElementById("clock").textContent=timeFmt.format(now);
@@ -208,7 +206,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
         tempCount.textContent = countdown(temporaryTarget);
         tempState.textContent = "● 等待 Cloudflare Cron 自动触发";
       } else {
-        tempCount.textContent = "19:00 触发时刻已到";
+        tempCount.textContent = "19:15 触发时刻已到";
         tempState.textContent = "● 请检查 GitHub Actions：获取任务与消息推送任务";
       }
     }
