@@ -97,6 +97,12 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .live i{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:7px;box-shadow:0 0 10px var(--green)}
     .hero{border:1px solid var(--line);border-radius:24px;padding:26px 28px;background:linear-gradient(120deg,rgba(23,39,66,.94),rgba(18,25,46,.94));box-shadow:0 20px 70px rgba(0,0,0,.2);margin-bottom:18px}
     .hero-label{color:var(--muted);font-size:13px}.clock{font-size:clamp(34px,7vw,54px);font-weight:750;letter-spacing:1px;margin:8px 0 5px;font-variant-numeric:tabular-nums}.date{color:#a9b7ce;font-size:14px}
+    .temp-run{margin:0 0 18px;border:1px solid rgba(89,214,154,.3);border-radius:20px;padding:22px 24px;background:linear-gradient(110deg,rgba(20,54,55,.82),rgba(22,30,55,.96));}
+    .temp-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .temp-title{font-size:15px;font-weight:750}.temp-tag{font-size:10px;letter-spacing:1.4px;color:#8ce8b8;border:1px solid rgba(89,214,154,.3);border-radius:999px;padding:5px 9px}
+    .temp-time{font-size:clamp(30px,6vw,42px);font-weight:800;letter-spacing:1px;margin:12px 0 4px;font-variant-numeric:tabular-nums}
+    .temp-desc{font-size:12px;color:#a9b7ce;line-height:1.8}
+    .temp-state{font-size:12px;color:#8ce8b8;margin-top:8px}
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
     .task{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;padding:23px;background:linear-gradient(145deg,rgba(20,31,53,.98),rgba(14,22,39,.98));min-height:248px}
     .task:after{content:"";position:absolute;width:170px;height:170px;border-radius:50%;right:-70px;top:-82px;background:var(--glow);filter:blur(3px);opacity:.13}
@@ -135,6 +141,12 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       <div class="hero-label">当前北京时间 · Asia/Shanghai</div>
       <div class="clock" id="clock">--:--:--</div>
       <div class="date" id="date">正在读取时间…</div>
+    </section>
+    <section class="temp-run">
+      <div class="temp-head"><div class="temp-title">临时自动执行 · 数据获取 + 黑盒消息推送</div><span class="temp-tag">ONE-TIME TEST</span></div>
+      <div class="temp-time" id="temp-count">读取倒计时…</div>
+      <div class="temp-desc">2026年11月25日 · 北京时间 18:40<br>到点后先触发 Daily Loot Fetch，随后触发 Daily Loot Push；推送工作流会等待本次获取成功后再发送消息。</div>
+      <div class="temp-state" id="temp-state">● 等待 Cloudflare Cron 自动触发</div>
     </section>
     <section class="grid">
       <article class="task fetch">
@@ -183,12 +195,22 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       const minutes=Math.floor(seconds/60);seconds%=60;
       return (days>0?days+"天 ":"")+pad(hours)+"时 "+pad(minutes)+"分 "+pad(seconds)+"秒";
     }
+    const temporaryTarget = new Date("2026-11-25T18:40:00+08:00").getTime();
     function tick(){
       const now=new Date();
       document.getElementById("clock").textContent=timeFmt.format(now);
       document.getElementById("date").textContent=fmt.format(now);
       document.getElementById("fetch-count").textContent=countdown(nextRun(16,1));
       document.getElementById("push-count").textContent=countdown(nextRun(16,2));
+      const tempCount = document.getElementById("temp-count");
+      const tempState = document.getElementById("temp-state");
+      if (now.getTime() < temporaryTarget) {
+        tempCount.textContent = countdown(temporaryTarget);
+        tempState.textContent = "● 等待 Cloudflare Cron 自动触发";
+      } else {
+        tempCount.textContent = "18:40 触发时刻已到";
+        tempState.textContent = "● 请检查 GitHub Actions：获取任务与消息推送任务";
+      }
     }
 
     document.querySelectorAll(".test-btn").forEach(button => {
@@ -257,15 +279,19 @@ export default {
       scheduledTime: new Date(controller.scheduledTime).toISOString(),
     }));
 
-    // One-time diagnostic run to prove the automatic Cron -> GitHub dispatch path.
-    // This only starts the fetch workflow; it does not send a bot message.
+    // One-time diagnostic: dispatch fetch, then dispatch push which waits for this fetch run.
     if (beijingDateMinute === TEMP_TEST_TRIGGER_BEIJING) {
       console.log(JSON.stringify({
         event: "temporary_cron_test_trigger",
         target: TEMP_TEST_TRIGGER_BEIJING,
-        workflow: "daily-loot-fetch.yml",
+        workflows: ["daily-loot-fetch.yml", "daily-loot-push.yml"],
       }));
       await dispatchWorkflow(env, "daily-loot-fetch.yml");
+      const fetchNotBefore = new Date(controller.scheduledTime - 60 * 1000).toISOString();
+      await dispatchWorkflow(env, "daily-loot-push.yml", {
+        wait_for_fetch: true,
+        fetch_not_before: fetchNotBefore,
+      });
       return;
     }
 
