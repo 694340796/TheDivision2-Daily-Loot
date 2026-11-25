@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-11-24",
+  "snapshot_date": "2026-11-25",
   "reset_hour_utc": 8,
   "current_playlist": 9,
   "labels_en": {
@@ -171,54 +171,57 @@
       "mission_code": "PEN",
       "mission": "五角大楼",
       "mission_en": "The Pentagon",
-      "loot": "中国光能工业公司",
-      "loot_en": "China Light Industries Corporation",
-      "category": "品牌套装",
-      "loot_code": "e",
-      "loot_uid": "5D4179F159C399D4000037A587D705FC",
-      "loot_mitem": "gearbrand_e.mgearbrand",
-      "loot_alias": "China Light Industries"
+      "loot": "大师",
+      "loot_en": "Virtuoso",
+      "category": "装备组",
+      "loot_code": "set_u",
+      "loot_uid": "B0050135668D2EB100052EA6EA9C0B78",
+      "loot_mitem": "gearbrand_set_u.mgearbrand"
     },
     {
       "mission_code": "DARPA",
       "mission": "国防高等研究计划署实验室",
       "mission_en": "DARPA Research Labs",
-      "loot": "彼得罗夫防御集团",
-      "loot_en": "Petrov Defense Group",
-      "category": "品牌套装",
-      "loot_code": "d",
-      "loot_uid": "5D4179F159C399B400003790529752CA",
-      "loot_mitem": "gearbrand_d.mgearbrand"
+      "loot": "芳心终结者",
+      "loot_en": "Heartbreaker",
+      "category": "装备组",
+      "loot_code": "set_n",
+      "loot_uid": "B3CF2E9261530F7C00036363CE1EC8CB",
+      "loot_mitem": "gearbrand_set_n.mgearbrand"
     },
     {
       "mission_code": "DUA",
       "mission": "区域联盟体育馆",
       "mission_en": "District Union Arena",
-      "loot": "芬里斯集团公司",
-      "loot_en": "Fenris Group AB",
-      "category": "品牌套装",
-      "loot_code": "j",
-      "loot_uid": "5D4179F159C39A6D0000380EA4BABCCF",
-      "loot_mitem": "gearbrand_j.mgearbrand"
+      "loot": "精密组件",
+      "loot_en": "Measured Assembly",
+      "category": "装备组",
+      "loot_code": "set_w",
+      "loot_uid": "E03CE5EA67F42E1B0003BC8916E53225",
+      "loot_mitem": "gearbrand_set_w.mgearbrand"
     },
     {
       "mission_code": "RI",
       "mission": "罗斯福岛",
       "mission_en": "Roosevelt Island",
-      "loot": "影子军团股份有限公司",
-      "loot_en": "Grupo Sombra S.A.",
+      "loot": "沃克与哈里斯企业",
+      "loot_en": "Walker, Harris & Co.",
       "category": "品牌套装",
-      "loot_code": "n",
-      "loot_uid": "5D4179F159C39AEE000038625157F8A3",
-      "loot_mitem": "gearbrand_n.mgearbrand"
+      "loot_code": "t",
+      "loot_uid": "346395BC5E9EA5970006A0480808723A",
+      "loot_mitem": "gearbrand_t.mgearbrand",
+      "loot_alias": "Walker, Harris & Co"
     },
     {
       "mission_code": "SAHQ",
       "mission": "航天局总部",
       "mission_en": "Space Administration HQ",
-      "loot": "胸甲",
-      "loot_en": "Body Armor",
-      "category": "装备部位"
+      "loot": "专注连队",
+      "loot_en": "Concentrated Company",
+      "category": "装备组",
+      "loot_code": "set_y",
+      "loot_uid": "E03CE5EA68FA84D900037317890CA3CF",
+      "loot_mitem": "gearbrand_set_y.mgearbrand"
     }
   ],
   "playlists": [
@@ -612,10 +615,50 @@
     {
       "playlist": 9,
       "start": "2026-11-24",
-      "end": "2026-11-24"
+      "end": "2026-11-25"
     }
   ],
   "history": [
+    [
+      "2026-11-25",
+      9,
+      "PEN",
+      "五角大楼",
+      "大师",
+      "装备组"
+    ],
+    [
+      "2026-11-25",
+      9,
+      "DARPA",
+      "国防高等研究计划署实验室",
+      "芳心终结者",
+      "装备组"
+    ],
+    [
+      "2026-11-25",
+      9,
+      "DUA",
+      "区域联盟体育馆",
+      "精密组件",
+      "装备组"
+    ],
+    [
+      "2026-11-25",
+      9,
+      "RI",
+      "罗斯福岛",
+      "沃克与哈里斯企业",
+      "品牌套装"
+    ],
+    [
+      "2026-11-25",
+      9,
+      "SAHQ",
+      "航天局总部",
+      "专注连队",
+      "装备组"
+    ],
     [
       "2026-11-24",
       9,
@@ -9339,6 +9382,16 @@
   ],
   "vendor": [
     [
+      "2026-11-25",
+      "武器箱",
+      "霰弹枪"
+    ],
+    [
+      "2026-11-25",
+      "装备箱",
+      "胸甲"
+    ],
+    [
       "2026-11-24",
       "武器箱",
       "步枪"
@@ -12598,13 +12651,19 @@
       "updated_at": "2026-11-24 08:01",
       "playlist": 9,
       "source_updated_at": "2026-11-24 09:01"
+    },
+    "2026-11-25": {
+      "source": "prototrack",
+      "updated_at": "2026-11-25 08:01",
+      "playlist": 9,
+      "source_updated_at": "2026-11-25 09:00"
     }
   },
   "meta": {
-    "last_sync": "2026-11-24 08:01",
-    "source_updated_at": "2026-11-24 09:01",
-    "prototrack_date": "2026-11-24",
-    "prototrack_updated_at": "2026-11-24 09:01"
+    "last_sync": "2026-11-25 08:01",
+    "source_updated_at": "2026-11-25 09:00",
+    "prototrack_date": "2026-11-25",
+    "prototrack_updated_at": "2026-11-25 09:00"
   },
   "loot_canonical": {
     "真实爱国者": {
@@ -13049,6 +13108,6 @@
       "mitem": "gearbrand_j.mgearbrand"
     }
   },
-  "_github_fetched_at": "2026-11-24T20:19:24+08:00",
+  "_github_fetched_at": "2026-11-25T16:10:29+08:00",
   "_github_source_url": "https://agenthub.fans/assets/loot/target_loot.json"
 }
