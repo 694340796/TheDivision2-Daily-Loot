@@ -43,12 +43,13 @@ npx wrangler secret put GITHUB_TOKEN
 
 粘贴刚才生成的 Fine-grained PAT。
 
-可选变量默认已经指向当前仓库：
-- `GITHUB_OWNER=694340796`
-- `GITHUB_REPO=TheDivision2-Daily-Loot`
-- `GITHUB_REF=main`
+Worker 的 GitHub 仓库、所有者和分支已固定在代码中，不需要配置 `GITHUB_OWNER`、`GITHUB_REPO` 或 `GITHUB_REF` 普通变量。
 
-如果要覆盖默认值，可在 Cloudflare Dashboard → Worker → Settings → Variables and Secrets 中设置普通 Text 变量。
+Cloudflare Worker 只需要以下密钥：
+- 必需 Secret：`GITHUB_TOKEN`，用于调用 GitHub Actions。
+- 可选 Secret：`TRIGGER_SECRET`，用于网页手动触发测试。
+
+这些密钥只在 Cloudflare Dashboard → Workers & Pages → Worker → Settings → Variables and Secrets 中设置，不要放入 GitHub 仓库文件。GitHub Actions 使用的 `HEYCHAT_BOT_TOKEN` 是另一项独立密钥，仍需保留在 GitHub 仓库 Secrets 中。
 
 ## 5. 部署
 
