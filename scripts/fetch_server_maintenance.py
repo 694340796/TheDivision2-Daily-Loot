@@ -73,19 +73,33 @@ def parse_post_date(value: str) -> datetime | None:
 
 
 def parse_duration(text: str) -> int | None:
-    patterns = [
-        r"(?:estimated|expected|approx(?:imately)?|around)?\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b",
-        r"(?:estimated|expected|approx(?:imately)?|around)?\s*(\d+)\s*(?:minutes?|mins?|m)\b",
-    ]
-    for index, pattern in enumerate(patterns):
-        match = re.search(pattern, text, re.I)
-        if match:
-            amount = float(match.group(1))
-            return int(amount * (3600 if index == 0 else 60))
-    match = re.search(r"(?:downtime|maintenance|maintenance window)[^.\n]{0,50}?(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m)\b", text, re.I)
-    if match:
-        unit = match.group(2).lower()
-        return int(float(match.group(1)) * (3600 if unit.startswith("h") else 60))
+    """解析公告中的完整维护时长，支持小时+分钟组合。"""
+    hour_unit = r"(?:hours?|hrs?|h)"
+    minute_unit = r"(?:minutes?|mins?|m)"
+    labeled = re.search(
+        rf"(?:estimated|expected|approx(?:imately)?\s+)?"
+        rf"(?:downtime|maintenance(?:\s+window|\s+duration)?)"
+        rf"\s*[:：-]?\s*(\d+(?:\.\d+)?)\s*{hour_unit}"
+        rf"(?:\s*(?:and\s*)?(\d+(?:\.\d+)?)\s*{minute_unit})?",
+        text, re.I
+    )
+    if labeled:
+        total = float(labeled.group(1)) * 3600
+        if labeled.group(2):
+            total += float(labeled.group(2)) * 60
+        return int(total)
+    combined = re.search(
+        rf"(\d+(?:\.\d+)?)\s*{hour_unit}\s*(?:and\s*)?"
+        rf"(\d+(?:\.\d+)?)\s*{minute_unit}\b", text, re.I
+    )
+    if combined:
+        return int(float(combined.group(1)) * 3600 + float(combined.group(2)) * 60)
+    hours = re.search(r"(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b", text, re.I)
+    if hours:
+        return int(float(hours.group(1)) * 3600)
+    minutes = re.search(r"(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b", text, re.I)
+    if minutes:
+        return int(float(minutes.group(1)) * 60)
     return None
 
 
