@@ -81,6 +81,9 @@ def build_maintenance_card(maintenance: dict, now_ts: int) -> dict:
     duration = maintenance.get("duration_text") or "未知"
     post_date = maintenance.get("post_date_beijing") or "未知"
     start_text = maintenance.get("maintenance_start_beijing") or "未公布"
+    end_text = maintenance.get("maintenance_end_beijing")
+    if not end_text and isinstance(start_ts, int) and isinstance(end_ts, int) and end_ts > start_ts:
+        end_text = datetime.fromtimestamp(end_ts, BEIJING).strftime("%Y-%m-%d %H:%M")
 
     # 只有明确存在且已过期的结束时间，才显示无维护。
     if isinstance(end_ts, int) and end_ts <= now_ts:
@@ -92,7 +95,8 @@ def build_maintenance_card(maintenance: dict, now_ts: int) -> dict:
                 f"{status}\n\n"
                 f"🗓️ **发帖日期：** {post_date}（北京时间）\n\n"
                 f"⏰ **预计维护开始：** {start_text}（北京时间）\n\n"
-                f"⌛ **预计维护时长：** {duration}"
+                + (f"🏁 **预计维护结束时间：** {end_text}（北京时间）\n\n" if end_text and duration != "未知" else "")
+                + f"⌛ **预计维护时长：** {duration}"
             )
             modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": details}]})
             modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": "**距离维护开始**"}]})
@@ -103,7 +107,8 @@ def build_maintenance_card(maintenance: dict, now_ts: int) -> dict:
                 f"{status}\n\n"
                 f"🗓️ **发帖日期：** {post_date}（北京时间）\n\n"
                 f"⏰ **维护开始时间：** {start_text}（北京时间）\n\n"
-                f"⌛ **预计维护时长：** {duration}"
+                + (f"🏁 **预计维护结束时间：** {end_text}（北京时间）\n\n" if end_text and duration != "未知" else "")
+                + f"⌛ **预计维护时长：** {duration}"
             )
             modules.append({"type": "section", "paragraph": [{"type": "markdown", "text": details}]})
 
