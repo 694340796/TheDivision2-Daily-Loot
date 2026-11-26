@@ -1,7 +1,7 @@
 {
   "source_account": "@TheDivisionGame",
-  "post_date_beijing": "2026-11-25 23:45:00",
-  "post_timestamp": 1795621500,
+  "post_date_beijing": "2026-11-26 21:10:32",
+  "post_timestamp": 1795698632,
   "maintenance_start_beijing": "2026-11-26 16:00",
   "maintenance_start_timestamp": 1795680000,
   "source_timezone": "CET",
@@ -9,8 +9,8 @@
   "duration_text": "5小时30分钟",
   "countdown_end_time": 1795699800,
   "maintenance_end_beijing": "2026-11-26 21:30",
-  "announcement": "D.C. is going Legendary. Spearfall launches tomorrow, Agents! #TheDivision2 maintenance 📅 Thursday, November 26 🕐 9 AM CET, 3 AM ET, 12 AM PT ⏳ Estimated downtime: 5 hours 30 minutes Full patch notes: https://thedivision2.com/spearfall D.C. is going Legendary. Spearfall launches tomorrow, Agents! #TheDivision2 maintenance 📅 Thursday, November 26 🕐 9 AM CET, 3 AM ET, 12 AM PT ⏳ Estimated downtime: 5 hours 30 minutes Full patch notes: thedivision2.com/spearfall",
-  "post_url": "http://nitter.mizuki.st/TheDivisionGame/status/2125616751119348048#m",
-  "fetched_at_beijing": "2026-11-26T18:14:27+08:00",
+  "announcement": "The maintenance has been completed! The maintenance has been completed! Tom Clancy's The Division (@TheDivisionGame) D.C. is going Legendary. Spearfall launches tomorrow, Agents! #TheDivision2 maintenance 📅 Thursday, November 26 🕐 9 AM CET, 3 AM ET, 12 AM PT ⏳ Estimated downtime: 5 hours 30 minutes Full patch notes: thedivision2.com/spearfall — http://nitter.mizuki.st/TheDivisionGame/status/2125616751119348048#m",
+  "post_url": "http://nitter.mizuki.st/TheDivisionGame/status/2125940267152715941#m",
+  "fetched_at_beijing": "2026-11-27T00:36:36+08:00",
   "parser_note": "仅提取公告明确写出的时间和时长；未公布维护时长时显示未知且不生成维护结束倒计时。"
 }
