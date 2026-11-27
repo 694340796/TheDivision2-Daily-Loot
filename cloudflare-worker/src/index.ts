@@ -246,6 +246,12 @@ export default {
       return;
     }
 
+    // 每小时北京时间第 05 分钟，由 Worker 触发 X 维护公告检查工作流。
+    if (beijing.minute === "05") {
+      await dispatchWorkflow(env, "hourly-x-maintenance-alert.yml");
+      return;
+    }
+
     if (beijing.hour === "16" && beijing.minute === "02") {
       const fetchNotBefore = new Date(
         controller.scheduledTime - 3 * 60 * 1000,
