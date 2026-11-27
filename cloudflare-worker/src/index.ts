@@ -104,7 +104,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .test-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
     .test-btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;color:#07111e;cursor:pointer;transition:filter .15s,transform .15s}
     .test-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}.test-btn:disabled{opacity:.55;cursor:wait;transform:none}
-    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}.xmaint-btn{background:linear-gradient(135deg,#69dfa4,#a8f0c8)}
+    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}
     #trigger-result{font-size:12px;line-height:1.7;margin-top:12px;color:#a9b7ce;min-height:18px}
     #trigger-result.ok{color:#8ce8b8}#trigger-result.error{color:#ff9b9b}
     .bottom{text-align:center;color:#64748b;font-size:11px;margin-top:24px}
@@ -145,14 +145,13 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     <section class="note"><strong>运行说明</strong><br>① 每天 16:01 触发每日掉落数据获取。<br>② 每天 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>③ 每小时 :05 触发 X 服务器维护公告检查（例如 09:05、10:05、11:05）。<br>以上时间均为北京时间。Cloudflare Worker 每分钟检查一次计划任务，实际触发可能有少量延迟。</section>
 
     <section class="test-panel">
-      <div class="test-title">手动触发测试 <span>MANUAL TEST</span></div>
-      <p>用于验证 Cloudflare Worker 是否能够成功调用 GitHub Actions。请输入你设置的测试密钥，再选择要触发的工作流。</p>
-      <label for="trigger-key">测试密钥</label>
+      <div class="test-title">手动触发工作流 <span>MANUAL WORKFLOW</span></div>
+      <p>输入触发密钥后，可手动运行对应的 GitHub Actions 工作流。</p>
+      <label for="trigger-key">触发密钥</label>
       <input id="trigger-key" type="password" autocomplete="off" placeholder="输入 Cloudflare Secret：TRIGGER_SECRET">
       <div class="test-actions">
-        <button class="test-btn fetch-btn" data-workflow="fetch">测试触发每日掉落获取</button>
-        <button class="test-btn push-btn" data-workflow="push">测试触发每日订阅推送</button>
-        <button class="test-btn xmaint-btn" data-workflow="xmaint_test">模拟维护公告并发送测试卡片</button>
+        <button class="test-btn fetch-btn" data-workflow="fetch">手动运行每日掉落获取</button>
+        <button class="test-btn push-btn" data-workflow="push">手动运行每日订阅推送</button>
       </div>
       <div id="trigger-result" role="status" aria-live="polite"></div>
     </section>
@@ -310,18 +309,16 @@ export default {
       } catch {
         return Response.json({ error: "请求内容不是有效 JSON" }, { status: 400 });
       }
-      const workflows: Record<string, { file: string; inputs?: Record<string, string | boolean> }> = {
-        fetch: { file: "daily-loot-fetch.yml" },
-        push: { file: "daily-loot-push.yml" },
-        xmaint_test: { file: "hourly-x-maintenance-alert.yml", inputs: { simulate: true } },
+      const workflows: Record<string, string> = {
+        fetch: "daily-loot-fetch.yml",
+        push: "daily-loot-push.yml",
       };
-      const selected = body.workflow ? workflows[body.workflow] : undefined;
-      const workflowFile = selected?.file;
+      const workflowFile = body.workflow ? workflows[body.workflow] : undefined;
       if (!workflowFile) {
         return Response.json({ error: "不支持的工作流类型" }, { status: 400 });
       }
       try {
-        await dispatchWorkflow(env, workflowFile, selected?.inputs);
+        await dispatchWorkflow(env, workflowFile);
         return Response.json({ ok: true, workflow: workflowFile, message: "GitHub 已接受 workflow_dispatch 请求" }, { status: 202 });
       } catch (error) {
         console.error("Manual workflow trigger failed:", error);
