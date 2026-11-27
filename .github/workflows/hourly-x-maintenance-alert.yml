@@ -2,12 +2,6 @@ name: Hourly X Maintenance Alert
 
 on:
   workflow_dispatch:
-    inputs:
-      simulate:
-        description: "发送模拟维护公告测试卡片"
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -36,7 +30,6 @@ jobs:
         run: python -u scripts/check_hourly_x_maintenance.py
         env:
           HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
-          SIMULATE_MAINTENANCE: ${{ inputs.simulate }}
           PYTHONUNBUFFERED: "1"
           TZ: Asia/Shanghai
 
