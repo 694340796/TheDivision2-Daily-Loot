@@ -65,32 +65,13 @@ def main() -> None:
 
     bot = HeychatBot(token)
     now = datetime.now(timezone.utc)
-    if os.getenv("SIMULATE_MAINTENANCE", "").strip().lower() in {"1", "true", "yes", "on"}:
-        start_at = datetime.now(BEIJING) + timedelta(minutes=30)
-        duration = 3 * 3600 + 30 * 60
-        end_at = start_at + timedelta(seconds=duration)
-        maintenance = {
-            "source_account": "@TheDivisionGame（模拟测试）",
-            "post_date_beijing": datetime.now(BEIJING).strftime("%Y-%m-%d %H:%M:%S"),
-            "post_timestamp": int(now.timestamp()),
-            "maintenance_start_beijing": start_at.strftime("%Y-%m-%d %H:%M"),
-            "maintenance_start_timestamp": int(start_at.timestamp()),
-            "source_timezone": "Asia/Shanghai",
-            "duration_seconds": duration,
-            "duration_text": "3小时30分钟",
-            "countdown_end_time": int(end_at.timestamp()),
-            "maintenance_end_beijing": end_at.strftime("%Y-%m-%d %H:%M"),
-            "announcement": "【模拟测试】服务器将进行维护。本消息为测试卡片，不代表真实维护安排。",
-            "post_url": "",
-            "fetched_at_beijing": datetime.now(BEIJING).isoformat(timespec="seconds"),
-        }
-        card = build_maintenance_card(maintenance, int(now.timestamp()))
-        message = json.dumps({"data": [card]}, ensure_ascii=False, separators=(",", ":"))
-        bot.send_card(room_id, channel_info, message)
-        log.info("模拟维护公告测试卡片已发送；未读取 X、未修改真实维护数据及去重记录。")
-        return
-
-    cutoff = now - timedelta(hours=1)
+    # 按北京时间每小时 :05 对齐抓取窗口；工作流启动延迟不会改变起点。
+    now_beijing = now.astimezone(BEIJING)
+    window_end = now_beijing.replace(minute=5, second=0, microsecond=0)
+    if now_beijing < window_end:
+        window_end -= timedelta(hours=1)
+    window_start = window_end - timedelta(hours=1)
+    log.info("本轮推文抓取窗口（北京时间）：%s 至 %s", window_start.isoformat(), now_beijing.isoformat())
     state = load_json(STATE, {"sent_post_keys": []})
     sent = set(state.get("sent_post_keys", []))
     posts = []
@@ -114,7 +95,6 @@ def main() -> None:
         return
 
     posts.sort(key=lambda item: item.get("posted_at") or datetime.min.replace(tzinfo=timezone.utc))
-    bot = HeychatBot(token)
     sent_keys = list(state.get("sent_post_keys", []))
     sent_count = 0
     failures = 0
@@ -125,15 +105,15 @@ def main() -> None:
             continue
         if posted.tzinfo is None:
             posted = posted.replace(tzinfo=timezone.utc)
-        posted = posted.astimezone(timezone.utc)
-        if posted < cutoff or posted > now + timedelta(minutes=2):
+        posted = posted.astimezone(BEIJING)
+        if posted < window_start or posted > now_beijing:
             continue
 
         post_key = key_for(post)
         if post_key in sent:
             continue
 
-        posted_beijing = posted.astimezone(BEIJING)
+        posted_beijing = posted
         start_at, source_zone = parse_start(post.get("text", ""), posted_beijing)
         duration = parse_duration(post.get("text", ""))
         end_ts = int(start_at.timestamp() + duration) if start_at and duration is not None else None
