@@ -104,7 +104,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .test-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
     .test-btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;color:#07111e;cursor:pointer;transition:filter .15s,transform .15s}
     .test-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}.test-btn:disabled{opacity:.55;cursor:wait;transform:none}
-    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}
+    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}.xmaint-btn{background:linear-gradient(135deg,#69dfa4,#a8f0c8)}
     #trigger-result{font-size:12px;line-height:1.7;margin-top:12px;color:#a9b7ce;min-height:18px}
     #trigger-result.ok{color:#8ce8b8}#trigger-result.error{color:#ff9b9b}
     .bottom{text-align:center;color:#64748b;font-size:11px;margin-top:24px}
@@ -152,6 +152,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       <div class="test-actions">
         <button class="test-btn fetch-btn" data-workflow="fetch">测试触发每日掉落获取</button>
         <button class="test-btn push-btn" data-workflow="push">测试触发每日订阅推送</button>
+        <button class="test-btn xmaint-btn" data-workflow="xmaint_test">模拟维护公告并发送测试卡片</button>
       </div>
       <div id="trigger-result" role="status" aria-live="polite"></div>
     </section>
@@ -309,16 +310,18 @@ export default {
       } catch {
         return Response.json({ error: "请求内容不是有效 JSON" }, { status: 400 });
       }
-      const workflows: Record<string, string> = {
-        fetch: "daily-loot-fetch.yml",
-        push: "daily-loot-push.yml",
+      const workflows: Record<string, { file: string; inputs?: Record<string, string | boolean> }> = {
+        fetch: { file: "daily-loot-fetch.yml" },
+        push: { file: "daily-loot-push.yml" },
+        xmaint_test: { file: "hourly-x-maintenance-alert.yml", inputs: { simulate: true } },
       };
-      const workflowFile = body.workflow ? workflows[body.workflow] : undefined;
+      const selected = body.workflow ? workflows[body.workflow] : undefined;
+      const workflowFile = selected?.file;
       if (!workflowFile) {
         return Response.json({ error: "不支持的工作流类型" }, { status: 400 });
       }
       try {
-        await dispatchWorkflow(env, workflowFile);
+        await dispatchWorkflow(env, workflowFile, selected?.inputs);
         return Response.json({ ok: true, workflow: workflowFile, message: "GitHub 已接受 workflow_dispatch 请求" }, { status: 202 });
       } catch (error) {
         console.error("Manual workflow trigger failed:", error);
