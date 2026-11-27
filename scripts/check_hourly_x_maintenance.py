@@ -67,10 +67,9 @@ def main() -> None:
     now = datetime.now(timezone.utc)
     # 按北京时间每小时 :05 对齐抓取窗口；工作流启动延迟不会改变起点。
     now_beijing = now.astimezone(BEIJING)
-    window_end = now_beijing.replace(minute=5, second=0, microsecond=0)
-    if now_beijing < window_end:
-        window_end -= timedelta(hours=1)
-    window_start = window_end - timedelta(hours=1)
+    window_start = now_beijing.replace(minute=5, second=0, microsecond=0)
+    if now_beijing < window_start:
+        window_start -= timedelta(hours=1)
     log.info("本轮推文抓取窗口（北京时间）：%s 至 %s", window_start.isoformat(), now_beijing.isoformat())
     state = load_json(STATE, {"sent_post_keys": []})
     sent = set(state.get("sent_post_keys", []))
