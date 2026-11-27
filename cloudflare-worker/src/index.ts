@@ -136,7 +136,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
         <div class="foot"><span>GitHub Actions · Daily Loot Push</span><span class="status">● 已配置</span></div>
       </article>
     </section>
-    <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>Cloudflare Worker 每分钟触发一次，并使用 Asia/Shanghai 时区检查计划时间；北京时间 16:01 触发获取，16:02 触发推送。调度可能有少量延迟，不保证秒级准点。</section>
+    <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>Cloudflare Worker 每分钟触发一次，并使用 Asia/Shanghai 时区检查计划时间；北京时间 16:01 触发每日获取，16:02 触发每日推送，每小时第 05 分钟触发 X 维护公告检查。调度可能有少量延迟，不保证秒级准点。</section>
 
     <section class="test-panel">
       <div class="test-title">手动触发测试 <span>MANUAL TEST</span></div>
