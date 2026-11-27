@@ -63,6 +63,7 @@ def main() -> None:
         log.info("尚未配置有效黑盒订阅频道，跳过推送")
         return
 
+    bot = HeychatBot(token)
     now = datetime.now(timezone.utc)
     if os.getenv("SIMULATE_MAINTENANCE", "").strip().lower() in {"1", "true", "yes", "on"}:
         start_at = datetime.now(BEIJING) + timedelta(minutes=30)
