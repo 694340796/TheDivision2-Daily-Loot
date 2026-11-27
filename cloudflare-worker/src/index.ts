@@ -86,7 +86,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
     .task{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;padding:23px;background:linear-gradient(145deg,rgba(20,31,53,.98),rgba(14,22,39,.98));min-height:248px}
     .task:after{content:"";position:absolute;width:170px;height:170px;border-radius:50%;right:-70px;top:-82px;background:var(--glow);filter:blur(3px);opacity:.13}
-    .task.fetch{--glow:var(--cyan)}.task.push{--glow:var(--violet)}
+    .task.fetch{--glow:var(--cyan)}.task.push{--glow:var(--violet)}.task.xmaint{--glow:var(--green)}
     .task-head{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
     .task-name{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700}.task-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.06);font-size:17px}
     .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 9px}
@@ -135,8 +135,14 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
         <div class="count-label">距离下次执行还有</div><div class="count" id="push-count">计算中…</div>
         <div class="foot"><span>GitHub Actions · Daily Loot Push</span><span class="status">● 已配置</span></div>
       </article>
+      <article class="task xmaint">
+        <div class="task-head"><div class="task-name"><span class="task-icon">𝕏</span>X 服务器维护监测</div><span class="tag">X MONITOR</span></div>
+        <div class="time">每小时 :05</div><div class="timezone">每小时一次 · 北京时间 UTC+8（如 09:05、10:05、11:05）</div>
+        <div class="count-label">距离下次执行还有</div><div class="count" id="xmaint-count">计算中…</div>
+        <div class="foot"><span>GitHub Actions · Hourly X Maintenance Alert</span><span class="status">● 已配置</span></div>
+      </article>
     </section>
-    <section class="note"><strong>运行说明</strong><br>① 16:01 触发每日掉落数据获取。<br>② 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>Cloudflare Worker 每分钟触发一次，并使用 Asia/Shanghai 时区检查计划时间；北京时间 16:01 触发每日获取，16:02 触发每日推送，每小时第 05 分钟触发 X 维护公告检查。调度可能有少量延迟，不保证秒级准点。</section>
+    <section class="note"><strong>运行说明</strong><br>① 每天 16:01 触发每日掉落数据获取。<br>② 每天 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>③ 每小时 :05 触发 X 服务器维护公告检查（例如 09:05、10:05、11:05）。<br>以上时间均为北京时间。Cloudflare Worker 每分钟检查一次计划任务，实际触发可能有少量延迟。</section>
 
     <section class="test-panel">
       <div class="test-title">手动触发测试 <span>MANUAL TEST</span></div>
@@ -161,6 +167,12 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       if (target <= Date.now()) target += 86400000;
       return target;
     }
+    function nextHourlyRun(minute) {
+      const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:zone,year:"numeric",month:"numeric",day:"numeric",hour:"numeric",hourCycle:"h23"}).formatToParts(new Date()).filter(p=>p.type!=="literal").map(p=>[p.type,Number(p.value)]));
+      let target = Date.UTC(parts.year,parts.month-1,parts.day,parts.hour-8,minute,0);
+      if (target <= Date.now()) target += 3600000;
+      return target;
+    }
     function pad(n){return String(n).padStart(2,"0")}
     function countdown(target){
       let seconds=Math.max(0,Math.floor((target-Date.now())/1000));
@@ -175,6 +187,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       document.getElementById("date").textContent=fmt.format(now);
       document.getElementById("fetch-count").textContent=countdown(nextRun(16,1));
       document.getElementById("push-count").textContent=countdown(nextRun(16,2));
+      document.getElementById("xmaint-count").textContent=countdown(nextHourlyRun(5));
     }
 
     document.querySelectorAll(".test-btn").forEach(button => {
