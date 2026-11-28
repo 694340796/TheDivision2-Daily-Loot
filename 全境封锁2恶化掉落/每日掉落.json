@@ -84,7 +84,8 @@
     "步枪": "Rifle",
     "轻机枪": "LMG",
     "护膝": "Kneepad",
-    "射手步枪": "Marksman Rifle"
+    "射手步枪": "Marksman Rifle",
+    "战地将军": "Field General"
   },
   "icons": {
     "5.11 Tactical": "brand17.png",
@@ -183,12 +184,12 @@
       "mission_code": "DARPA",
       "mission": "国防高等研究计划署实验室",
       "mission_en": "DARPA Research Labs",
-      "loot": "倾斜天平",
-      "loot_en": "Tipping Scales",
+      "loot": "战地将军",
+      "loot_en": "Field General",
       "category": "装备组",
-      "loot_code": "set_x",
-      "loot_uid": "B005013568537CA5000370D56FB662AF",
-      "loot_mitem": "gearbrand_set_x.mgearbrand"
+      "loot_code": "set_d1",
+      "loot_uid": "B00501356AE852960003865B805E3500",
+      "loot_mitem": "gearbrand_set_d1.mgearbrand"
     },
     {
       "mission_code": "DUA",
@@ -632,7 +633,7 @@
       9,
       "DARPA",
       "国防高等研究计划署实验室",
-      "倾斜天平",
+      "战地将军",
       "装备组"
     ],
     [
@@ -12766,16 +12767,16 @@
     },
     "2026-11-27": {
       "source": "prototrack",
-      "updated_at": "2026-11-27 08:02",
+      "updated_at": "2026-11-28 03:04",
       "playlist": 9,
-      "source_updated_at": "2026-11-27 09:02"
+      "source_updated_at": "2026-11-27 09:18"
     }
   },
   "meta": {
-    "last_sync": "2026-11-27 08:02",
-    "source_updated_at": "2026-11-27 09:02",
+    "last_sync": "2026-11-28 03:04",
+    "source_updated_at": "2026-11-27 09:18",
     "prototrack_date": "2026-11-27",
-    "prototrack_updated_at": "2026-11-27 09:02"
+    "prototrack_updated_at": "2026-11-27 09:18"
   },
   "loot_canonical": {
     "真实爱国者": {
@@ -13218,8 +13219,15 @@
       "code": "j",
       "uid": "5D4179F159C39A6D0000380EA4BABCCF",
       "mitem": "gearbrand_j.mgearbrand"
+    },
+    "战地将军": {
+      "zh": "战地将军",
+      "en": "Field General",
+      "code": "set_d1",
+      "uid": "B00501356AE852960003865B805E3500",
+      "mitem": "gearbrand_set_d1.mgearbrand"
     }
   },
-  "_github_fetched_at": "2026-11-27T17:25:25+08:00",
+  "_github_fetched_at": "2026-11-28T16:02:03+08:00",
   "_github_source_url": "https://agenthub.fans/assets/loot/target_loot.json"
 }
