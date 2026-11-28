@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-11-27",
+  "snapshot_date": "2026-11-28",
   "reset_hour_utc": 8,
   "current_playlist": 9,
   "labels_en": {
@@ -172,57 +172,56 @@
       "mission_code": "PEN",
       "mission": "五角大楼",
       "mission_en": "The Pentagon",
-      "loot": "阿尔卑斯山峰军事",
-      "loot_en": "Alps Summit Armament",
-      "category": "品牌套装",
-      "loot_code": "k",
-      "loot_uid": "5D4179F159C39A8C000038236D0F7E9C",
-      "loot_mitem": "gearbrand_k.mgearbrand",
-      "loot_alias": "Alps Summit Armaments"
+      "loot": "再铸者",
+      "loot_en": "Refactor",
+      "category": "装备组",
+      "loot_code": "set_v",
+      "loot_uid": "E03CE5EA675C09EF00036D3F8DE98E71",
+      "loot_mitem": "gearbrand_set_v.mgearbrand"
     },
     {
       "mission_code": "DARPA",
       "mission": "国防高等研究计划署实验室",
       "mission_en": "DARPA Research Labs",
-      "loot": "战地将军",
-      "loot_en": "Field General",
+      "loot": "日蚀协定",
+      "loot_en": "Eclipse Protocol",
       "category": "装备组",
-      "loot_code": "set_d1",
-      "loot_uid": "B00501356AE852960003865B805E3500",
-      "loot_mitem": "gearbrand_set_d1.mgearbrand"
+      "loot_code": "set_k",
+      "loot_uid": "346395BC5E8196600003A68E5D01ACA4",
+      "loot_mitem": "gearbrand_set_k.mgearbrand"
     },
     {
       "mission_code": "DUA",
       "mission": "区域联盟体育馆",
       "mission_en": "District Union Arena",
-      "loot": "毒蜥守卫队",
-      "loot_en": "Gila Guard",
+      "loot": "索寇罗夫企业",
+      "loot_en": "Sokolov Concern",
       "category": "品牌套装",
-      "loot_code": "b",
-      "loot_uid": "5D4179F159C3996000003766A8D2AC27",
-      "loot_mitem": "gearbrand_b.mgearbrand"
+      "loot_code": "p",
+      "loot_uid": "5D4179F159C39B310000388C1E53B2E7",
+      "loot_mitem": "gearbrand_p.mgearbrand"
     },
     {
       "mission_code": "RI",
       "mission": "罗斯福岛",
       "mission_en": "Roosevelt Island",
-      "loot": "村上工业",
-      "loot_en": "Murakami Industries",
-      "category": "品牌套装",
-      "loot_code": "s",
-      "loot_uid": "5D4179F159C39B86000038CB7D66B6FF",
-      "loot_mitem": "gearbrand_s.mgearbrand"
+      "loot": "烈焰大炮",
+      "loot_en": "Hotshot",
+      "category": "装备组",
+      "loot_code": "set_P",
+      "loot_uid": "F58BDD56638DAB0F000381EA06C06607",
+      "loot_mitem": "gearbrand_set_p.mgearbrand"
     },
     {
       "mission_code": "SAHQ",
       "mission": "航天局总部",
       "mission_en": "Space Administration HQ",
-      "loot": "火绳枪军火公司",
-      "loot_en": "Brazos de Arcabuz",
+      "loot": "彼得罗夫防御集团",
+      "loot_en": "Petrov Defense Group",
       "category": "品牌套装",
-      "loot_code": "x",
-      "loot_uid": "F58BDD5662CE728C000380897BE6FF0F",
-      "loot_mitem": "gearbrand_x.mgearbrand"
+      "loot_code": "d",
+      "loot_uid": "5D4179F159C399B400003790529752CA",
+      "loot_mitem": "gearbrand_d.mgearbrand"
     }
   ],
   "playlists": [
@@ -616,10 +615,50 @@
     {
       "playlist": 9,
       "start": "2026-11-24",
-      "end": "2026-11-27"
+      "end": "2026-11-28"
     }
   ],
   "history": [
+    [
+      "2026-11-28",
+      9,
+      "PEN",
+      "五角大楼",
+      "再铸者",
+      "装备组"
+    ],
+    [
+      "2026-11-28",
+      9,
+      "DARPA",
+      "国防高等研究计划署实验室",
+      "日蚀协定",
+      "装备组"
+    ],
+    [
+      "2026-11-28",
+      9,
+      "DUA",
+      "区域联盟体育馆",
+      "索寇罗夫企业",
+      "品牌套装"
+    ],
+    [
+      "2026-11-28",
+      9,
+      "RI",
+      "罗斯福岛",
+      "烈焰大炮",
+      "装备组"
+    ],
+    [
+      "2026-11-28",
+      9,
+      "SAHQ",
+      "航天局总部",
+      "彼得罗夫防御集团",
+      "品牌套装"
+    ],
     [
       "2026-11-27",
       9,
@@ -9463,6 +9502,16 @@
   ],
   "vendor": [
     [
+      "2026-11-28",
+      "武器箱",
+      "霰弹枪"
+    ],
+    [
+      "2026-11-28",
+      "装备箱",
+      "面具"
+    ],
+    [
       "2026-11-27",
       "武器箱",
       "手枪"
@@ -12770,13 +12819,19 @@
       "updated_at": "2026-11-28 03:04",
       "playlist": 9,
       "source_updated_at": "2026-11-27 09:18"
+    },
+    "2026-11-28": {
+      "source": "prototrack",
+      "updated_at": "2026-11-28 08:02",
+      "playlist": 9,
+      "source_updated_at": "2026-11-28 09:02"
     }
   },
   "meta": {
-    "last_sync": "2026-11-28 03:04",
-    "source_updated_at": "2026-11-27 09:18",
-    "prototrack_date": "2026-11-27",
-    "prototrack_updated_at": "2026-11-27 09:18"
+    "last_sync": "2026-11-28 08:02",
+    "source_updated_at": "2026-11-28 09:02",
+    "prototrack_date": "2026-11-28",
+    "prototrack_updated_at": "2026-11-28 09:02"
   },
   "loot_canonical": {
     "真实爱国者": {
@@ -13228,6 +13283,6 @@
       "mitem": "gearbrand_set_d1.mgearbrand"
     }
   },
-  "_github_fetched_at": "2026-11-28T16:02:03+08:00",
+  "_github_fetched_at": "2026-11-28T16:19:19+08:00",
   "_github_source_url": "https://agenthub.fans/assets/loot/target_loot.json"
 }
