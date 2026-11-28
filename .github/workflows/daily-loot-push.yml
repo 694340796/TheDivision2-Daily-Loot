@@ -18,7 +18,7 @@ concurrency:
 jobs:
   push:
     # 获取工作流必须成功完成；失败或取消时不发送旧数据。
-    if: \${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -42,5 +42,5 @@ jobs:
       - name: Send daily loot to subscribed channel
         run: python scripts/send_daily_loot.py
         env:
-          HEYCHAT_BOT_TOKEN: \${{ secrets.HEYCHAT_BOT_TOKEN }}
+          HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
           PYTHONUNBUFFERED: "1"
