@@ -1,7 +1,7 @@
 name: Daily Loot Fetch
 
 on:
-  # 由 Cloudflare Worker 每天北京时间 16:01 通过 workflow_dispatch 触发
+  # 由 Cloudflare Worker 每天北京时间 16:00 通过 workflow_dispatch 触发
   workflow_dispatch:
 
 permissions:
