@@ -104,7 +104,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     .test-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
     .test-btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;color:#07111e;cursor:pointer;transition:filter .15s,transform .15s}
     .test-btn:hover{filter:brightness(1.12);transform:translateY(-1px)}.test-btn:disabled{opacity:.55;cursor:wait;transform:none}
-    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}.push-btn{background:linear-gradient(135deg,#a99aff,#d0a5ff)}
+    .fetch-btn{background:linear-gradient(135deg,#58d9e8,#7de2c4)}
     #trigger-result{font-size:12px;line-height:1.7;margin-top:12px;color:#a9b7ce;min-height:18px}
     #trigger-result.ok{color:#8ce8b8}#trigger-result.error{color:#ff9b9b}
     .bottom{text-align:center;color:#64748b;font-size:11px;margin-top:24px}
@@ -125,14 +125,14 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
     <section class="grid">
       <article class="task fetch">
         <div class="task-head"><div class="task-name"><span class="task-icon">↻</span>每日掉落获取</div><span class="tag">FETCH</span></div>
-        <div class="time">16:01</div><div class="timezone">每天 · 北京时间 UTC+8</div>
+        <div class="time">16:00</div><div class="timezone">每天 · 北京时间 UTC+8</div>
         <div class="count-label">距离下次执行还有</div><div class="count" id="fetch-count">计算中…</div>
         <div class="foot"><span>GitHub Actions · Daily Loot Fetch</span><span class="status">● 已配置</span></div>
       </article>
       <article class="task push">
         <div class="task-head"><div class="task-name"><span class="task-icon">➤</span>每日订阅推送</div><span class="tag">PUSH</span></div>
-        <div class="time">16:02</div><div class="timezone">每天 · 北京时间 UTC+8</div>
-        <div class="count-label">距离下次执行还有</div><div class="count" id="push-count">计算中…</div>
+        <div class="time">获取完成后 +5 秒</div><div class="timezone">由获取工作流完成事件自动触发 · 无固定运行时间</div>
+        <div class="count-label">推送触发规则</div><div class="count" id="push-count">等待获取任务完成</div>
         <div class="foot"><span>GitHub Actions · Daily Loot Push</span><span class="status">● 已配置</span></div>
       </article>
       <article class="task xmaint">
@@ -142,7 +142,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
         <div class="foot"><span>GitHub Actions · Hourly X Maintenance Alert</span><span class="status">● 已配置</span></div>
       </article>
     </section>
-    <section class="note"><strong>运行说明</strong><br>① 每天 16:01 触发每日掉落数据获取。<br>② 每天 16:02 触发订阅推送工作流，等待当天获取任务成功后再发送，避免推送旧数据。<br>③ 每小时 :05 触发 X 服务器维护公告检查（例如 09:05、10:05、11:05）。<br>以上时间均为北京时间。Cloudflare Worker 每分钟检查一次计划任务，实际触发可能有少量延迟。</section>
+    <section class="note"><strong>运行说明</strong><br>① 每天北京时间 16:00，Worker 只触发每日掉落数据获取。<br>② 获取工作流成功结束后，GitHub Actions 自动等待 5 秒，再启动每日订阅推送；推送没有固定运行时间。<br>③ 如果获取工作流失败或取消，不会触发每日推送。<br>④ 每小时 :05 触发 X 服务器维护公告检查（例如 09:05、10:05、11:05）。<br>以上时间均为北京时间；Worker 每分钟检查一次计划任务，触发可能有少量延迟。</section>
 
     <section class="test-panel">
       <div class="test-title">手动触发工作流 <span>MANUAL WORKFLOW</span></div>
@@ -150,8 +150,7 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       <label for="trigger-key">触发密钥</label>
       <input id="trigger-key" type="password" autocomplete="off" placeholder="输入 Cloudflare Secret：TRIGGER_SECRET">
       <div class="test-actions">
-        <button class="test-btn fetch-btn" data-workflow="fetch">手动运行每日掉落获取</button>
-        <button class="test-btn push-btn" data-workflow="push">手动运行每日订阅推送</button>
+        <button class="test-btn fetch-btn" data-workflow="fetch">手动运行每日掉落流程（完成后自动推送）</button>
       </div>
       <div id="trigger-result" role="status" aria-live="polite"></div>
     </section>
@@ -186,7 +185,6 @@ const DASHBOARD_HTML = String.raw`<!doctype html>
       document.getElementById("clock").textContent=timeFmt.format(now);
       document.getElementById("date").textContent=fmt.format(now);
       document.getElementById("fetch-count").textContent=countdown(nextRun(16,1));
-      document.getElementById("push-count").textContent=countdown(nextRun(16,2));
       document.getElementById("xmaint-count").textContent=countdown(nextHourlyRun(5));
     }
 
@@ -254,7 +252,7 @@ export default {
       scheduledTime: new Date(controller.scheduledTime).toISOString(),
     }));
 
-    if (beijing.hour === "16" && beijing.minute === "01") {
+    if (beijing.hour === "16" && beijing.minute === "00") {
       await dispatchWorkflow(env, "daily-loot-fetch.yml");
       return;
     }
@@ -262,18 +260,6 @@ export default {
     // 每小时北京时间第 05 分钟，由 Worker 触发 X 维护公告检查工作流。
     if (beijing.minute === "05") {
       await dispatchWorkflow(env, "hourly-x-maintenance-alert.yml");
-      return;
-    }
-
-    if (beijing.hour === "16" && beijing.minute === "02") {
-      const fetchNotBefore = new Date(
-        controller.scheduledTime - 3 * 60 * 1000,
-      ).toISOString();
-
-      await dispatchWorkflow(env, "daily-loot-push.yml", {
-        wait_for_fetch: "true",
-        fetch_not_before: fetchNotBefore,
-      });
       return;
     }
 
@@ -311,7 +297,6 @@ export default {
       }
       const workflows: Record<string, string> = {
         fetch: "daily-loot-fetch.yml",
-        push: "daily-loot-push.yml",
       };
       const workflowFile = body.workflow ? workflows[body.workflow] : undefined;
       if (!workflowFile) {
