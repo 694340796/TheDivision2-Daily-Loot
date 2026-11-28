@@ -1,23 +1,15 @@
 name: Daily Loot Push
 
 on:
-  # 由 Cloudflare Worker 每天北京时间 16:02 通过 workflow_dispatch 触发
-  workflow_dispatch:
-    inputs:
-      wait_for_fetch:
-        description: "Wait for today's Daily Loot Fetch workflow to finish"
-        required: false
-        default: "false"
-        type: boolean
-      fetch_not_before:
-        description: "Only wait for a fetch run created at or after this UTC time"
-        required: false
-        default: ""
-        type: string
+  # 仅在每日掉落获取工作流结束后自动触发，不设置固定运行时间，也不提供独立手动触发。
+  workflow_run:
+    workflows:
+      - Daily Loot Fetch
+    types:
+      - completed
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
   group: daily-loot-push
@@ -25,53 +17,19 @@ concurrency:
 
 jobs:
   push:
+    # 获取工作流必须成功完成；失败或取消时不发送旧数据。
+    if: \${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Wait for today's fetch workflow
-        if: ${{ inputs.wait_for_fetch == true }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FETCH_NOT_BEFORE: ${{ inputs.fetch_not_before }}
-        run: |
-          set -euo pipefail
+      - name: Wait 5 seconds after fetch workflow completion
+        run: sleep 5
 
-          if [ -z "$FETCH_NOT_BEFORE" ]; then
-            echo "::error::fetch_not_before is required when wait_for_fetch is true"
-            exit 1
-          fi
-
-          echo "Waiting for Daily Loot Fetch run created at or after: $FETCH_NOT_BEFORE"
-
-          for attempt in $(seq 1 90); do
-            RUN_INFO="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/daily-loot-fetch.yml/runs?branch=main&per_page=20" \
-              --jq "[.workflow_runs[] | select(.event == \"workflow_dispatch\" and .created_at >= \"$FETCH_NOT_BEFORE\")] | sort_by(.created_at) | last | if . == null then \"\" else [.id, .status, (.conclusion // \"\")] | @tsv end" || true)"
-
-            if [ -n "$RUN_INFO" ]; then
-              IFS=$'\t' read -r RUN_ID RUN_STATUS RUN_CONCLUSION <<< "$RUN_INFO"
-              echo "Fetch run #$RUN_ID status=$RUN_STATUS conclusion=$RUN_CONCLUSION"
-
-              if [ "$RUN_STATUS" = "completed" ]; then
-                if [ "$RUN_CONCLUSION" = "success" ]; then
-                  echo "Fetch completed successfully."
-                  exit 0
-                fi
-                echo "::error::Daily Loot Fetch failed: $RUN_CONCLUSION"
-                exit 1
-              fi
-            else
-              echo "Fetch run not visible yet."
-            fi
-
-            sleep 10
-          done
-
-          echo "::error::Timed out waiting for Daily Loot Fetch after 15 minutes."
-          exit 1
-
-      # 必须在 Fetch 完成后 checkout，确保读取的是最新掉落文件
+      # 获取工作流提交数据后再 checkout，确保读取最新掉落文件。
       - name: Checkout latest repository data
         uses: actions/checkout@v7
+        with:
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -84,5 +42,5 @@ jobs:
       - name: Send daily loot to subscribed channel
         run: python scripts/send_daily_loot.py
         env:
-          HEYCHAT_BOT_TOKEN: ${{ secrets.HEYCHAT_BOT_TOKEN }}
+          HEYCHAT_BOT_TOKEN: \${{ secrets.HEYCHAT_BOT_TOKEN }}
           PYTHONUNBUFFERED: "1"
